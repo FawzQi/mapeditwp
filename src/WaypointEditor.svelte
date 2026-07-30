@@ -6,33 +6,30 @@
   
   const dispatch = createEventDispatcher();
 
-  let editMode = 'normal';
+  let editMode = 'edit';
+  let dragAction = 'none'; 
+  
   let selectedIdxs = new Set();
-  let selectedIdxSingle = null;
   let undoStack = [];
   
   let customView = null;
   let zoomUndoStack = [];
   
-  // NEW: Waypoint Transform State
   let wpOriginX = 0;
   let wpOriginY = 0;
-  let wpOriginYaw = 0; // in radians
+  let wpOriginYaw = 0; 
   
-  let isDragging = false;
   let dragStartPos = null;
-  let isPanning = false;
   let panStartPixel = null;
   let rectStart = null;
   let rectCurrent = null;
   
   let svgElement;
-  let dataLayer; // Global layer (handles SVG aspect inversion)
-  let wpLayer;   // Local layer (handles Waypoint Origin transformations)
+  let dataLayer; 
+  let wpLayer;   
   let svgWidth = 800;
   let svgHeight = 600;
 
-  // Save the full state including origins to the undo stack
   const saveState = () => undoStack.push({
     waypoints: JSON.parse(JSON.stringify(waypoints)),
     wpOriginX, wpOriginY, wpOriginYaw
@@ -45,6 +42,7 @@
       wpOriginX = state.wpOriginX;
       wpOriginY = state.wpOriginY;
       wpOriginYaw = state.wpOriginYaw;
+      selectedIdxs = new Set();
     }
   }
 
@@ -52,35 +50,55 @@
   function resetZoom() { customView = zoomUndoStack.length > 0 ? zoomUndoStack.pop() : null; }
   function setMode(mode) { editMode = mode; }
 
-  // Permanently bakes the visual origin shift into the CSV points data
-  function bakeTransform() {
+  function deleteSelectedPoints() {
+    if (selectedIdxs.size === 0) return;
+    saveState(); 
+    waypoints = waypoints.filter((_, i) => !selectedIdxs.has(i));
+    selectedIdxs = new Set();
+  }
+
+  // NEW: Rotate selected waypoints around their own geometric center
+  function rotateSelected(angleDegrees) {
+    if (selectedIdxs.size === 0) return;
     saveState();
-    waypoints = waypoints.map(w => {
-      const cosT = Math.cos(wpOriginYaw);
-      const sinT = Math.sin(wpOriginYaw);
-      return {
-        ...w, // Preserves extra CSV columns like fb_velocity and fb_steering
-        x: w.x * cosT - w.y * sinT + wpOriginX,
-        y: w.x * sinT + w.y * cosT + wpOriginY
-      };
+    
+    const angleRad = angleDegrees * (Math.PI / 180);
+    const cosA = Math.cos(angleRad);
+    const sinA = Math.sin(angleRad);
+    
+    // Find the center point of the current selection
+    let cx = 0, cy = 0;
+    for (let i of selectedIdxs) {
+      cx += waypoints[i].x;
+      cy += waypoints[i].y;
+    }
+    cx /= selectedIdxs.size;
+    cy /= selectedIdxs.size;
+    
+    // Rotate each point around that center
+    waypoints = waypoints.map((wp, i) => {
+      if (selectedIdxs.has(i)) {
+        const dx = wp.x - cx;
+        const dy = wp.y - cy;
+        return {
+          ...wp,
+          x: cx + (dx * cosA - dy * sinA),
+          y: cy + (dx * sinA + dy * cosA)
+        };
+      }
+      return wp;
     });
-    wpOriginX = 0;
-    wpOriginY = 0;
-    wpOriginYaw = 0;
   }
 
   function onKey(event) {
     const key = event.key.toLowerCase();
     if (event.altKey && key === 's') dispatch('save', waypoints);
     else if (event.altKey && key === 'z') { editMode === 'zoom' ? resetZoom() : undoLastMove(); } 
-    else if (event.altKey && key === 'g') setMode('group');
-    else if (event.altKey && key === 'm') setMode('move');
-    else if (event.altKey && key === 'n') setMode('normal');
+    else if (event.altKey && key === 'e') setMode('edit');
     else if (event.altKey && key === 'x') setMode('zoom');
+    else if (key === 'delete' || key === 'backspace') deleteSelectedPoints(); 
   }
 
-  // --- MOUSE COORDINATE HELPERS ---
-  // Returns coordinates in the global map frame (used for Panning and Zoom Box)
   function getGlobalCoords(event) {
     if (!dataLayer) return { x: 0, y: 0 };
     const pt = svgElement.createSVGPoint();
@@ -89,7 +107,6 @@
     return { x: svgP.x, y: svgP.y };
   }
 
-  // Returns coordinates relative to the shifted/rotated Waypoint frame (used for dragging & selecting points)
   function getLocalCoords(event) {
     if (!wpLayer) return { x: 0, y: 0 };
     const pt = svgElement.createSVGPoint();
@@ -100,32 +117,57 @@
 
   function onPress(event) {
     if (event.button === 2) {
-      isPanning = true;
+      dragAction = 'pan';
       panStartPixel = { x: event.clientX, y: event.clientY };
       lockView(); 
       return; 
     }
 
-    // Determine context: Zoom works on global map, all others work on the local waypoint frame
     const coords = (editMode === 'zoom') ? getGlobalCoords(event) : getLocalCoords(event);
     dragStartPos = coords;
-    isDragging = true;
 
-    if (editMode === 'normal') {
+    if (editMode === 'edit') {
       let closestIdx = -1;
       let minDist = Infinity;
+      
       waypoints.forEach((wp, i) => {
         const dist = Math.sqrt(Math.pow(wp.x - coords.x, 2) + Math.pow(wp.y - coords.y, 2));
-        if (dist < minDist && dist < (pointRadius * 1.5)) { minDist = dist; closestIdx = i; }
+        // EDITED: Increased hitbox multiplier from 2.0 to 4.0 to make clicking easier
+        if (dist < minDist && dist < (pointRadius * 4.0)) { minDist = dist; closestIdx = i; }
       });
-      if (closestIdx !== -1) { selectedIdxSingle = closestIdx; saveState(); lockView(); }
+
+      if (closestIdx !== -1) {
+        // NEW: Alt+Click toggle logic for multi-select
+        if (event.altKey) {
+          if (selectedIdxs.has(closestIdx)) {
+            selectedIdxs.delete(closestIdx);
+          } else {
+            selectedIdxs.add(closestIdx);
+          }
+          selectedIdxs = selectedIdxs; // Trigger Svelte reactivity
+        } else if (!selectedIdxs.has(closestIdx)) {
+          selectedIdxs = new Set([closestIdx]); // Normal click (clears other selections)
+        }
+        
+        dragAction = 'move';
+        saveState(); 
+        lockView();
+      } else {
+        selectedIdxs = new Set(); 
+        dragAction = 'rect';
+        rectStart = coords;
+        rectCurrent = coords;
+      }
     } 
-    else if (editMode === 'move' && selectedIdxs.size > 0) { saveState(); lockView(); } 
-    else if (editMode === 'group' || editMode === 'zoom') { rectStart = coords; rectCurrent = coords; }
+    else if (editMode === 'zoom') {
+      dragAction = 'zoomRect';
+      rectStart = coords; 
+      rectCurrent = coords;
+    }
   }
 
   function onMotion(event) {
-    if (isPanning && panStartPixel) {
+    if (dragAction === 'pan' && panStartPixel) {
       const dxPixels = event.clientX - panStartPixel.x;
       const dyPixels = event.clientY - panStartPixel.y;
       const dxData = dxPixels * (activeRangeX / svgWidth);
@@ -139,51 +181,50 @@
       return;
     }
 
-    if (!isDragging || !dragStartPos) return;
+    if (dragAction === 'none' || !dragStartPos) return;
     
     const coords = (editMode === 'zoom') ? getGlobalCoords(event) : getLocalCoords(event);
     const dx = coords.x - dragStartPos.x;
     const dy = coords.y - dragStartPos.y;
 
-    if (editMode === 'normal' && selectedIdxSingle !== null) {
-      waypoints[selectedIdxSingle].x += dx; waypoints[selectedIdxSingle].y += dy; dragStartPos = coords;
-    } else if (editMode === 'move' && selectedIdxs.size > 0) {
+    if (dragAction === 'move' && selectedIdxs.size > 0) {
       for (let i of selectedIdxs) { waypoints[i].x += dx; waypoints[i].y += dy; }
       dragStartPos = coords;
-    } else if (editMode === 'group' || editMode === 'zoom') {
+      waypoints = waypoints; 
+    } else if (dragAction === 'rect' || dragAction === 'zoomRect') {
       rectCurrent = coords;
     }
   }
 
   function onRelease() {
-    if (isPanning) { isPanning = false; panStartPixel = null; }
-    if ((editMode === 'group' || editMode === 'zoom') && rectStart && rectCurrent) {
+    if (dragAction === 'pan') { panStartPixel = null; }
+    
+    if ((dragAction === 'rect' || dragAction === 'zoomRect') && rectStart && rectCurrent) {
       const xMin = Math.min(rectStart.x, rectCurrent.x); const xMax = Math.max(rectStart.x, rectCurrent.x);
       const yMin = Math.min(rectStart.y, rectCurrent.y); const yMax = Math.max(rectStart.y, rectCurrent.y);
 
-      if (editMode === 'group') {
-        selectedIdxs = new Set();
-        waypoints.forEach((wp, i) => { if (wp.x >= xMin && wp.x <= xMax && wp.y >= yMin && wp.y <= yMax) selectedIdxs.add(i); });
-      } else if (editMode === 'zoom') {
+      if (dragAction === 'rect') {
+        const newSelection = new Set();
+        waypoints.forEach((wp, i) => { if (wp.x >= xMin && wp.x <= xMax && wp.y >= yMin && wp.y <= yMax) newSelection.add(i); });
+        selectedIdxs = newSelection;
+      } else if (dragAction === 'zoomRect') {
         if (xMax - xMin > activeRangeX * 0.02 && yMax - yMin > activeRangeY * 0.02) {
           zoomUndoStack.push(customView ? { ...customView } : null);
           customView = { minX: xMin, maxX: xMax, minY: yMin, maxY: yMax };
         }
-        editMode = 'normal'; 
+        editMode = 'edit'; 
       }
       rectStart = null; rectCurrent = null;
     }
-    isDragging = false; dragStartPos = null; selectedIdxSingle = null; selectedIdxs = selectedIdxs; 
+    
+    dragAction = 'none'; 
+    dragStartPos = null; 
   }
   
-  // Calculate transformed bounds so Auto-Fit centers on the visually shifted waypoints
   $: transformedWaypoints = waypoints.map(w => {
     const cosT = Math.cos(wpOriginYaw);
     const sinT = Math.sin(wpOriginYaw);
-    return {
-        x: w.x * cosT - w.y * sinT + wpOriginX,
-        y: w.x * sinT + w.y * cosT + wpOriginY
-    };
+    return { x: w.x * cosT - w.y * sinT + wpOriginX, y: w.x * sinT + w.y * cosT + wpOriginY };
   });
 
   $: wpMinX = transformedWaypoints.length ? Math.min(...transformedWaypoints.map(w => w.x)) : Infinity;
@@ -265,9 +306,10 @@
 <div class="editor-layout">
   <div class="map-container">
     <div class="hints-overlay">
-      <strong>Alt+Z:</strong> {editMode === 'zoom' ? 'Undo Zoom' : 'Undo Edit'} • 
-      <strong>Double-Click:</strong> Auto-fit • 
-      <strong>Right-Click & Drag:</strong> Pan
+      <strong>Alt+Z:</strong> Undo • 
+      <strong>Alt+Click:</strong> Multi-select •
+      <strong>Del:</strong> Delete • 
+      <strong>Double-Click:</strong> Auto-fit
     </div>
 
     <svg 
@@ -281,15 +323,14 @@
       <!-- GLOBAL LAYER -->
       <g bind:this={dataLayer} transform="scale(1, -1)">
         
-        <!-- BACKGROUND MAP IMAGE[cite: 6] -->
         {#if mapImage}
-          <g transform="translate({mapImage.originX}, {mapImage.originY}) rotate({(mapImage.originYaw) * 180 / Math.PI}) translate(0, {mapImage.height * mapImage.resolution}) scale(1, -1)">
+          <g transform="rotate({(mapImage.originYaw) * 180 / Math.PI}) translate({mapImage.originX}, {mapImage.originY}) translate(0, {mapImage.height * mapImage.resolution}) scale(1, -1)">
             <image x="0" y="0" width={mapImage.width * mapImage.resolution} height={mapImage.height * mapImage.resolution} href={mapImage.url} preserveAspectRatio="none" />
           </g>
         {/if}
 
-        <!-- ZOOM BOX (Drawn in global space so it ignores waypoint rotations) -->
-        {#if rectStart && rectCurrent && editMode === 'zoom'}
+        <!-- ZOOM BOX -->
+        {#if rectStart && rectCurrent && dragAction === 'zoomRect'}
           <rect 
             x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)}
             width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)}
@@ -300,14 +341,14 @@
         <!-- WAYPOINTS LOCAL LAYER -->
         <g bind:this={wpLayer} transform="translate({0+wpOriginX}, {0+wpOriginY}) rotate({(0+wpOriginYaw) * 180 / Math.PI})">
           
-          <polyline points={pointsString} fill="none" stroke="blue" stroke-width={lineStroke} />
+          <polyline points={pointsString} fill="none" stroke="rgba(0, 0, 255, 0.4)" stroke-width={lineStroke} />
           
           {#each waypoints as wp, i}
             <circle cx={wp.x} cy={wp.y} r={(pointRadius>0.05 ? pointRadius : 0.05)} fill={selectedIdxs.has(i) ? "red" : "#0064ff"} />
           {/each}
 
-          <!-- GROUP SELECTION BOX (Drawn in local space so it follows the trajectory's rotation) -->
-          {#if rectStart && rectCurrent && editMode === 'group'}
+          <!-- GROUP SELECTION BOX -->
+          {#if rectStart && rectCurrent && dragAction === 'rect'}
             <rect 
               x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)}
               width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)}
@@ -334,20 +375,25 @@
 
   <div class="toolbar">
     <h3>Tools</h3>
-    <button class:active={editMode === 'normal'} on:click={() => setMode('normal')}><span>⚪</span> Normal (Alt+N)</button>
-    <button class:active={editMode === 'group'} on:click={() => setMode('group')}><span>🟡</span> Group (Alt+G)</button>
-    <button class:active={editMode === 'move'} on:click={() => setMode('move')}><span>🟣</span> Move (Alt+M)</button>
+    <button class:active={editMode === 'edit'} on:click={() => setMode('edit')}><span>👆</span> Edit (Alt+E)</button>
     <button class:active={editMode === 'zoom'} on:click={() => setMode('zoom')}><span>🔍</span> Zoom (Alt+X)</button>
     
     <div class="spacer"></div>
 
-    <h3>WP Origin</h3>
-    <div class="origin-inputs">
-      <label>X: <input type="number" step="0.5" bind:value={wpOriginX}></label>
-      <label>Y: <input type="number" step="0.5" bind:value={wpOriginY}></label>
-      <label>Yaw (rad): <input type="number" step="0.05" bind:value={wpOriginYaw}></label>
-      <button class="bake-btn" on:click={bakeTransform}>Apply to Points</button>
+    <!-- NEW: Rotate and Modify Section -->
+    <h3>Modify Selection</h3>
+    <div class="btn-row">
+      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title="Rotate   Clockwise">
+        <span>rotate ↺</span> 
+      </button>
+      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title="Rotate  Counter-Clockwise">
+        <span>↻ rotate</span>  
+      </button>
     </div>
+    
+    <button class="delete-btn" on:click={deleteSelectedPoints} disabled={selectedIdxs.size === 0}>
+      <span>🗑️</span> Delete (Del)
+    </button>
 
     <div class="spacer"></div>
 
@@ -371,51 +417,24 @@
   svg { width: 100%; height: 100%; cursor: crosshair; user-select: none; display: block; }
   .grid-system text { font-family: sans-serif; font-weight: bold; pointer-events: none; }
   
-  .toolbar { width: 200px; display: flex; flex-direction: column; gap: 8px; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #ccc; overflow-y: auto; }
+  .toolbar { width: 210px; display: flex; flex-direction: column; gap: 8px; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #ccc; overflow-y: auto; }
   .toolbar h3 { margin: 0 0 2px 0; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
   .spacer { flex-grow: 1; min-height: 10px; }
   
+  /* Flexbox configuration for the new row of rotation buttons */
+  .btn-row { display: flex; gap: 6px; }
+  .icon-btn { flex: 1; justify-content: center; padding: 10px 5px; }
+  
   button { display: flex; align-items: center; gap: 8px; padding: 10px; font-size: 14px; text-align: left; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; transition: all 0.2s; color: #333; }
-  button:hover { background: #f0f0f0; border-color: #bbb; }
+  button:hover:not(:disabled) { background: #f0f0f0; border-color: #bbb; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
   button.active { background: #e0edff; border-color: #0064ff; color: #004dc4; font-weight: bold; }
+  
+  .delete-btn { background: #ffebee; border-color: #ef9a9a; color: #c62828; }
+  .delete-btn:hover:not(:disabled) { background: #ffcdd2; }
+  
   .action-btn { background: #fff3e0; border-color: #ffcc80; }
   .action-btn:hover { background: #ffe0b2; }
   .save-btn { background: #e8f5e9; border-color: #a5d6a7; font-weight: bold; }
   .save-btn:hover { background: #c8e6c9; }
-
-  /* Origin Input Styling */
-  .origin-inputs {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    background: #fff;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 13px;
-  }
-  .origin-inputs label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 600;
-    color: #444;
-  }
-  .origin-inputs input {
-    width: 75px;
-    padding: 4px;
-    font-family: monospace;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-  }
-  .bake-btn {
-    margin-top: 4px;
-    justify-content: center;
-    background: #e3f2fd;
-    border-color: #90caf9;
-    color: #1565c0;
-    font-weight: bold;
-    padding: 6px;
-  }
-  .bake-btn:hover { background: #bbdefb; }
 </style>
