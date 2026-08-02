@@ -1,14 +1,15 @@
 <script>
   import WaypointEditor from './WaypointEditor.svelte';
+  import TerminalEditor from './TerminalEditor.svelte';
 
   let mapData = [];
+  let terminalData = [];
   let mapImageProps = null; 
+  let activeTab = 'waypoint'; // 'waypoint' | 'terminal'
 
-  // --- 1. WAYPOINT CSV UPLOAD ---
-  function handleCsvUpload(event) {
-    const file = event.target.files[0];
+  // Generic CSV Loader
+  function loadCsv(file, onComplete) {
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target.result;
@@ -33,12 +34,14 @@
         });
         parsedData.push(row);
       }
-      mapData = parsedData;
+      onComplete(parsedData);
     };
     reader.readAsText(file);
   }
 
-  // --- 2. ROS MAP UPLOAD (PGM + YAML) ---
+  function handleWaypointUpload(event) { loadCsv(event.target.files[0], data => mapData = data); }
+  function handleTerminalUpload(event) { loadCsv(event.target.files[0], data => terminalData = data); }
+
   async function handleMapUpload(event) {
     const files = event.target.files;
     let pgmFile = null;
@@ -49,10 +52,7 @@
       if (file.name.toLowerCase().endsWith('.yaml') || file.name.toLowerCase().endsWith('.yml')) yamlFile = file;
     }
 
-    if (!pgmFile || !yamlFile) {
-      alert("⚠️ Please select BOTH the .pgm and .yaml/.yml files at the same time.");
-      return;
-    }
+    if (!pgmFile || !yamlFile) return alert("⚠️ Please select BOTH the .pgm and .yaml/.yml files at the same time.");
 
     const yamlText = await yamlFile.text();
     const resMatch = yamlText.match(/resolution:\s*([\d.]+)/);
@@ -84,14 +84,10 @@
     }
 
     const magic = nextToken();
-    if (magic !== 'P5') {
-      alert("Error: Only binary (P5) PGM files are supported.");
-      return;
-    }
+    if (magic !== 'P5') return alert("Error: Only binary (P5) PGM files are supported.");
     
     const imgWidth = parseInt(nextToken());
     const imgHeight = parseInt(nextToken());
-    const maxVal = parseInt(nextToken());
     
     let char = String.fromCharCode(view[offset]);
     if (char === '\r') offset++;
@@ -125,18 +121,19 @@
     };
   }
 
-  // --- 3. EXPORTING BACK TO CSV ---
-  function handleSave(event) {
+  function handleSave(event, filename) {
     const updatedData = event.detail;
     if (updatedData.length === 0) return;
     const headers = Object.keys(updatedData[0]);
+    // Format to 2 decimal places to mimic python save script
     const csvContent = headers.join(',') + '\n' + 
-      updatedData.map(row => headers.map(h => row[h]).join(',')).join('\n');
+      updatedData.map(row => headers.map(h => typeof row[h] === 'number' ? row[h].toFixed(2) : row[h]).join(',')).join('\n');
+    
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'edited_waypoints.csv';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -146,43 +143,68 @@
 
 <div class="map-editor-wrapper">
   <div class="top-bar">
-    <h1>Map Editor</h1>
+    <h1>Map Configurator</h1>
     <div class="upload-group">
       <div class="upload-item">
-        <label>1. Upload Waypoints (CSV)</label>
-        <input type="file" accept=".csv, .tsv, .txt" on:change={handleCsvUpload} />
+        <label>Upload Map (.pgm & .yaml)</label>
+        <input type="file" multiple accept=".pgm, .yaml, .yml" on:change={handleMapUpload} />
       </div>
       <div class="upload-item">
-        <label>2. Upload Map (.pgm & .yaml)</label>
-        <input type="file" multiple accept=".pgm, .yaml, .yml" on:change={handleMapUpload} />
+        <label>Upload Waypoints (CSV)</label>
+        <input type="file" accept=".csv, .tsv, .txt" on:change={handleWaypointUpload} />
+      </div>
+      <div class="upload-item">
+        <label>Upload Terminals (CSV)</label>
+        <input type="file" accept=".csv, .tsv, .txt" on:change={handleTerminalUpload} />
       </div>
     </div>
   </div>
 
-  {#if mapData.length > 0 || mapImageProps}
+  {#if mapData.length > 0 || terminalData.length > 0 || mapImageProps}
+    
+    <!-- TABS -->
+    <div class="tabs">
+      <button class:active={activeTab === 'waypoint'} on:click={() => activeTab = 'waypoint'}>📍 Waypoint Editor</button>
+      <button class:active={activeTab === 'terminal'} on:click={() => activeTab = 'terminal'}>🎯 Terminal Editor</button>
+    </div>
+
     <div class="editor-container">
-      <WaypointEditor 
-        waypoints={mapData} 
-        mapImage={mapImageProps} 
-        on:save={handleSave} 
-      />
+      {#if activeTab === 'waypoint'}
+        <WaypointEditor 
+          waypoints={mapData} 
+          mapImage={mapImageProps} 
+          on:save={(e) => handleSave(e, 'edited_waypoints.csv')} 
+        />
+      {:else}
+        <TerminalEditor 
+          terminals={terminalData}
+          waypoints={mapData} 
+          mapImage={mapImageProps} 
+          on:save={(e) => handleSave(e, 'edited_terminals.csv')} 
+        />
+      {/if}
     </div>
   {:else}
     <div class="empty-state">
-      <p>📁 Please upload Waypoints or a Map image to begin editing.</p>
+      <p>📁 Please upload data or a Map image to begin editing.</p>
     </div>
   {/if}
 </div>
 
 <style>
-  :global(body) { margin: 0; padding: 0; background-color: #f4f4f9; }
-  main { padding: 20px; font-family: sans-serif; max-width: 95%; margin: 100 auto; }
-  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+  .map-editor-wrapper { padding: 20px; font-family: sans-serif; max-width: 100%; box-sizing: border-box; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
   h1 { margin: 0; font-size: 22px; color: #333; }
-  .upload-group { display: flex; gap: 20px; }
+  .upload-group { display: flex; gap: 20px; flex-wrap: wrap; }
   .upload-item { display: flex; flex-direction: column; gap: 5px; }
   .upload-item label { font-size: 12px; font-weight: bold; color: #666; text-transform: uppercase; }
-  input[type="file"] { font-family: monospace; background: #eef1f5; padding: 8px; border-radius: 4px; cursor: pointer; border: 1px solid #ccc; }
+  input[type="file"] { font-family: monospace; background: #eef1f5; padding: 8px; border-radius: 4px; cursor: pointer; border: 1px solid #ccc; max-width: 200px; }
+  
+  .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+  .tabs button { padding: 10px 20px; font-size: 15px; font-weight: bold; border: none; background: #eef1f5; border-radius: 6px; cursor: pointer; transition: all 0.2s; color: #555; }
+  .tabs button.active { background: #0064ff; color: white; box-shadow: 0 2px 8px rgba(0,100,255,0.3); }
+  .tabs button:hover:not(.active) { background: #dfe4ea; }
+
   .empty-state { text-align: center; padding: 100px 20px; color: #888; background: white; border: 2px dashed #ccc; border-radius: 8px; font-size: 18px; }
   .editor-container { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-</style> -->
+</style>
