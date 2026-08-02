@@ -7,7 +7,7 @@
   
   const dispatch = createEventDispatcher();
 
-  let editMode = 'edit'; // 'edit', 'add', 'zoom'
+  let editMode = 'edit'; 
   let dragAction = 'none'; 
   
   let selectedIdxs = new Set();
@@ -55,7 +55,6 @@
     selectedIdxs = new Set();
   }
 
-  // NEW: Rotate selected terminals around their geometric center and update their Theta
   function rotateSelected(angleDegrees) {
     if (selectedIdxs.size === 0) return;
     saveState();
@@ -64,32 +63,18 @@
     const cosA = Math.cos(angleRad);
     const sinA = Math.sin(angleRad);
     
-    // Find the center point of the current selection
     let cx = 0, cy = 0;
-    for (let i of selectedIdxs) {
-      cx += terminals[i].x;
-      cy += terminals[i].y;
-    }
-    cx /= selectedIdxs.size;
-    cy /= selectedIdxs.size;
+    for (let i of selectedIdxs) { cx += terminals[i].x; cy += terminals[i].y; }
+    cx /= selectedIdxs.size; cy /= selectedIdxs.size;
     
-    // Rotate each terminal and its directional angle (Theta)
     terminals = terminals.map((t, i) => {
       if (selectedIdxs.has(i)) {
-        const dx = t.x - cx;
-        const dy = t.y - cy;
-        
-        // Normalize new theta between -PI and PI
+        const dx = t.x - cx; const dy = t.y - cy;
         let newTheta = (t.theta || 0) + angleRad;
         while (newTheta > Math.PI) newTheta -= 2 * Math.PI;
         while (newTheta < -Math.PI) newTheta += 2 * Math.PI;
 
-        return {
-          ...t,
-          x: cx + (dx * cosA - dy * sinA),
-          y: cy + (dx * sinA + dy * cosA),
-          theta: newTheta
-        };
+        return { ...t, x: cx + (dx * cosA - dy * sinA), y: cy + (dx * sinA + dy * cosA), theta: newTheta };
       }
       return t;
     });
@@ -134,32 +119,24 @@
       });
 
       if (closestIdx !== -1) {
-        // Alt+Click logic for multi-select
         if (event.altKey) {
-          if (selectedIdxs.has(closestIdx)) {
-            selectedIdxs.delete(closestIdx);
-          } else {
-            selectedIdxs.add(closestIdx);
-          }
-          selectedIdxs = selectedIdxs; // Trigger Svelte reactivity
+          if (selectedIdxs.has(closestIdx)) selectedIdxs.delete(closestIdx);
+          else selectedIdxs.add(closestIdx);
+          selectedIdxs = selectedIdxs; 
         } else if (!selectedIdxs.has(closestIdx)) {
-          selectedIdxs = new Set([closestIdx]); // Normal click clears other selections
+          selectedIdxs = new Set([closestIdx]); 
         }
-
         dragAction = 'move';
-        saveState(); 
-        lockView();
+        saveState(); lockView();
       } else {
         selectedIdxs = new Set(); 
         dragAction = 'rect';
-        rectStart = coords;
-        rectCurrent = coords;
+        rectStart = coords; rectCurrent = coords;
       }
     } 
     else if (editMode === 'add') {
       saveState();
       const newId = terminals.length > 0 ? Math.max(...terminals.map(t => t.id)) + 1 : 0;
-      
       const newTerminal = {
         type: 1, id: newId, x: coords.x, y: coords.y, theta: 0.0,
         max_vx: 1.0, max_vy: 1.0, max_vtheta: 0.5, radius_area: 1.0,
@@ -173,8 +150,7 @@
     }
     else if (editMode === 'zoom') {
       dragAction = 'zoomRect';
-      rectStart = coords; 
-      rectCurrent = coords;
+      rectStart = coords; rectCurrent = coords;
     }
   }
 
@@ -200,10 +176,7 @@
     const dy = coords.y - dragStartPos.y;
 
     if (dragAction === 'move' && selectedIdxs.size > 0) {
-      for (let i of selectedIdxs) {
-        terminals[i].x += dx; 
-        terminals[i].y += dy; 
-      }
+      for (let i of selectedIdxs) { terminals[i].x += dx; terminals[i].y += dy; }
       dragStartPos = coords;
     } else if (dragAction === 'rect' || dragAction === 'zoomRect') {
       rectCurrent = coords;
@@ -230,8 +203,7 @@
       }
       rectStart = null; rectCurrent = null;
     }
-    dragAction = 'none'; 
-    dragStartPos = null; 
+    dragAction = 'none'; dragStartPos = null; 
   }
 
   $: allPointsX = [...terminals.map(t => t.x), ...waypoints.map(w => w.x)];
@@ -313,13 +285,45 @@
 <svelte:window on:keydown={onKey} />
 
 <div class="editor-layout">
-  <div class="map-container">
-    <div class="hints-overlay">
-      <strong>Alt+Z:</strong> Undo • 
-      <strong>Alt+Click:</strong> Multi-select • 
-      <strong>Right-Click & Drag:</strong> Pan
-    </div>
 
+  <!-- LEFT: INSTRUCTION PANEL -->
+  <div class="info-panel">
+    <h3>📖 How to Use</h3>
+    <div class="info-section">
+      <h4>Mouse Controls</h4>
+      <ul>
+        <li><strong>Left Click:</strong> Select & move terminals.</li>
+        <li><strong>Right Drag:</strong> Pan the map view.</li>
+        <li><strong>Double-Click:</strong> Auto-fit bounds.</li>
+      </ul>
+    </div>
+    <div class="info-section">
+      <h4>Selection</h4>
+      <ul>
+        <li><strong>Drag empty space:</strong> Select multiple terminals.</li>
+        <li><strong>Alt + Click:</strong> Multi-select individual terminals.</li>
+      </ul>
+    </div>
+    <div class="info-section">
+      <h4>Adding & Modifying</h4>
+      <ul>
+        <li><strong>Add:</strong> Select the ➕ tool and click the map.</li>
+        <li><strong>Rotate:</strong> Select terminals and use the rotation buttons to turn them & their Theta.</li>
+        <li><strong>Properties:</strong> Select <b>exactly one</b> terminal to change its type and speeds.</li>
+      </ul>
+    </div>
+    <div class="info-section">
+      <h4>Types</h4>
+      <ul>
+        <li style="color: orange; font-weight: bold;">Type 1: Stop Area</li>
+        <li style="color: #c9aa00; font-weight: bold;">Type 2: Slow Area</li>
+        <li style="color: green; font-weight: bold;">Type 32: Fast Area</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- CENTER: MAP RENDERING -->
+  <div class="map-container">
     <svg 
       bind:this={svgElement} bind:clientWidth={svgWidth} bind:clientHeight={svgHeight}
       viewBox="{activeMinX} {-activeMaxY} {activeRangeX} {activeRangeY}"
@@ -327,80 +331,40 @@
       on:mousedown={onPress} on:mousemove={onMotion} on:mouseup={onRelease} on:mouseleave={onRelease}
       on:dblclick={resetZoom} on:contextmenu|preventDefault 
     >
-      
-      <!-- GLOBAL LAYER -->
       <g bind:this={dataLayer} transform="scale(1, -1)">
-        
         {#if mapImage}
           <g transform="rotate({(mapImage.originYaw) * 180 / Math.PI}) translate({mapImage.originX}, {mapImage.originY}) translate(0, {mapImage.height * mapImage.resolution}) scale(1, -1)">
             <image x="0" y="0" width={mapImage.width * mapImage.resolution} height={mapImage.height * mapImage.resolution} href={mapImage.url} preserveAspectRatio="none" />
           </g>
         {/if}
 
-        <!-- BACKGROUND WAYPOINTS (Context only, not editable here) -->
         {#if waypoints.length > 0}
-          <polyline points={wpPointsString} fill="none" stroke="rgba(0, 0, 255, 0.4)" stroke-width={lineStroke} />
-          {#each waypoints as wp}
-            <circle cx={wp.x} cy={wp.y} r={pointRadius * 0.5} fill="rgba(0, 0, 255, 0.6)" />
-          {/each}
-        {/if}
+  <polyline points={wpPointsString} fill="none" stroke="rgba(0, 100, 255, 0.6)" stroke-width={lineStroke} />
+  {#each waypoints as wp}
+    <circle cx={wp.x} cy={wp.y} r={pointRadius * 0.8} fill="#0064ff" fill-opacity="0.7" />
+  {/each}
+{/if}
 
-        <!-- ZOOM BOX -->
         {#if rectStart && rectCurrent && dragAction === 'zoomRect'}
-          <rect 
-            x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)}
-            width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)}
-            fill="rgba(0, 100, 255, 0.15)" stroke="blue" stroke-width={lineStroke} stroke-dasharray="{lineStroke * 2}, {lineStroke * 2}"
-          />
+          <rect x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)} width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)} fill="rgba(0, 100, 255, 0.15)" stroke="blue" stroke-width={lineStroke} stroke-dasharray="{lineStroke * 2}, {lineStroke * 2}" />
         {/if}
 
-        <!-- TERMINALS LAYER -->
         {#each terminals as t, i}
-          <!-- Base Circle Area -->
-          <circle 
-            cx={t.x} cy={t.y} 
-            r={t.radius_area || 1.0} 
-            fill={getTerminalColor(t.type)} 
-            fill-opacity={selectedIdxs.has(i) ? "0.9" : "0.5"}
-            stroke={getTerminalColor(t.type)}
-            stroke-width={lineStroke * 2}
-            class="hoverable-point"
-          />
-          <!-- Center Point -->
+          <circle cx={t.x} cy={t.y} r={t.radius_area || 1.0} fill={getTerminalColor(t.type)} fill-opacity={selectedIdxs.has(i) ? "0.9" : "0.5"} stroke={getTerminalColor(t.type)} stroke-width={lineStroke * 2} class="hoverable-point" />
           <circle cx={t.x} cy={t.y} r={pointRadius * 1.5} fill={getTerminalColor(t.type)} />
+          <line x1={t.x} y1={t.y} x2={t.x + (t.radius_area * 0.8) * Math.cos(t.theta)} y2={t.y + (t.radius_area * 0.8) * Math.sin(t.theta)} stroke="black" stroke-width={lineStroke * 1.5} />
+          <circle cx={t.x + (t.radius_area * 0.8) * Math.cos(t.theta)} cy={t.y + (t.radius_area * 0.8) * Math.sin(t.theta)} r={pointRadius * 1.2} fill="black" />
           
-          <!-- Theta Directional Arrow -->
-          <line 
-            x1={t.x} y1={t.y} 
-            x2={t.x + (t.radius_area * 0.8) * Math.cos(t.theta)} 
-            y2={t.y + (t.radius_area * 0.8) * Math.sin(t.theta)} 
-            stroke="black" stroke-width={lineStroke * 1.5} 
-          />
-          <!-- Arrow Head -->
-          <circle 
-            cx={t.x + (t.radius_area * 0.8) * Math.cos(t.theta)} 
-            cy={t.y + (t.radius_area * 0.8) * Math.sin(t.theta)} 
-            r={pointRadius * 1.2} fill="black" 
-          />
-
-          <!-- Text ID -->
           <g transform="translate({t.x}, {t.y}) scale(1, -1)">
             <text x="0" y="0" text-anchor="middle" dominant-baseline="central" font-size={fontSize} font-weight="bold" fill="black">{t.id}</text>
           </g>
         {/each}
 
-        <!-- GROUP SELECTION BOX -->
         {#if rectStart && rectCurrent && dragAction === 'rect'}
-          <rect 
-            x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)}
-            width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)}
-            fill="rgba(0, 200, 0, 0.1)" stroke="green" stroke-width={lineStroke} stroke-dasharray="{lineStroke * 2}, {lineStroke * 2}"
-          />
+          <rect x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)} width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)} fill="rgba(0, 200, 0, 0.1)" stroke="green" stroke-width={lineStroke} stroke-dasharray="{lineStroke * 2}, {lineStroke * 2}" />
         {/if}
-
       </g>
 
-      <!-- GRID SYSTEM -->
       <g class="grid-system">
         {#each xTicks as x}
           <line x1={x} y1={-activeMaxY} x2={x} y2={-activeMinY} stroke="rgba(200,200,200,0.5)" stroke-width={gridStroke} />
@@ -414,6 +378,7 @@
     </svg>
   </div>
 
+  <!-- RIGHT: TOOLBAR -->
   <div class="toolbar">
     <h3>Tools</h3>
     <button class:active={editMode === 'edit'} on:click={() => setMode('edit')}><span>👆</span> Select/Edit</button>
@@ -422,58 +387,31 @@
     
     <div class="spacer"></div>
 
-    <!-- ROTATION AND MODIFICATION -->
     <h3>Modify Selection</h3>
     <div class="btn-row">
-      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title="Rotate Clockwise">
-        <span>rotate ↺</span> 
-      </button>
-      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title="Rotate Counter-Clockwise">
-        <span>↻ rotate</span>  
-      </button>
+      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title="Rotate Clockwise"><span>rotate ↺</span></button>
+      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title="Rotate Counter-Clockwise"><span>↻ rotate</span></button>
     </div>
 
     <div class="spacer"></div>
 
-    <!-- TERMINAL PROPERTIES EDITOR -->
     {#if singleSelectedIdx !== null && terminals[singleSelectedIdx]}
       <div class="properties-panel">
-        <div class="panel-header">
-          <strong>Terminal ID: {terminals[singleSelectedIdx].id}</strong>
-        </div>
-        <label>
-          <span>Type (1,2,32)</span>
-          <input type="number" bind:value={terminals[singleSelectedIdx].type}>
-        </label>
-        <label>
-          <span>Radius Area</span>
-          <input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].radius_area}>
-        </label>
-        <label>
-          <span>Theta (rad)</span>
-          <input type="number" step="0.05" bind:value={terminals[singleSelectedIdx].theta}>
-        </label>
-        <label>
-          <span>Max Vx</span>
-          <input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vx}>
-        </label>
-        <label>
-          <span>Max VTheta</span>
-          <input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vtheta}>
-        </label>
+        <div class="panel-header"><strong>Terminal ID: {terminals[singleSelectedIdx].id}</strong></div>
+        <label><span>Type (1,2,32)</span><input type="number" bind:value={terminals[singleSelectedIdx].type}></label>
+        <label><span>Radius Area</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].radius_area}></label>
+        <label><span>Theta (rad)</span><input type="number" step="0.05" bind:value={terminals[singleSelectedIdx].theta}></label>
+        <label><span>Max Vx</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vx}></label>
+        <label><span>Max VTheta</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vtheta}></label>
       </div>
     {:else if selectedIdxs.size > 1}
       <div class="properties-panel">
-        <div class="panel-header">
-          <strong>{selectedIdxs.size} Terminals Selected</strong>
-        </div>
+        <div class="panel-header"><strong>{selectedIdxs.size} Terminals Selected</strong></div>
         <p style="font-size: 11px; color: #666; margin: 0;">Select a single terminal to edit its individual attributes.</p>
       </div>
     {/if}
 
-    <button class="delete-btn" on:click={deleteSelectedTerminal} disabled={selectedIdxs.size === 0}>
-      <span>🗑️</span> Delete Selected
-    </button>
+    <button class="delete-btn" on:click={deleteSelectedTerminal} disabled={selectedIdxs.size === 0}><span>🗑️</span> Delete Selected</button>
 
     <div class="spacer"></div>
 
@@ -484,26 +422,28 @@
 </div>
 
 <style>
-  .editor-layout { display: flex; gap: 15px; height: 85vh; width: 100%; font-family: sans-serif; }
-  .map-container { flex: 1; position: relative; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; background: #ffffff; }
-    
-  .map-container {
-    background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-  }
-  
-  .hoverable-point { transition: fill-opacity 0.2s; }
-  .hoverable-point:hover { cursor: pointer; fill-opacity: 0.8 !important; }
+  /* Change this first line in your <style> block */
+  .editor-layout { display: flex; flex-direction: row; gap: 15px; height: 100%; width: 100%; font-family: sans-serif; box-sizing: border-box; }
+  /* Left Panel */
+  .info-panel { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #ccc; overflow-y: auto; }
+  .info-panel h3 { margin: 0; font-size: 16px; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 8px;}
+  .info-section { font-size: 13px; color: #555; line-height: 1.5; }
+  .info-section h4 { margin: 0 0 5px 0; font-size: 13px; color: #0064ff; text-transform: uppercase; }
+  .info-section ul { margin: 0; padding-left: 20px; }
 
-  .hints-overlay { position: absolute; top: 10px; right: 15px; background: rgba(255, 255, 255, 0.9); padding: 6px 12px; border-radius: 4px; font-size: 12px; color: #444; box-shadow: 0 1px 4px rgba(0,0,0,0.1); pointer-events: none; z-index: 10; }
-  svg { width: 100%; height: 100%; cursor: crosshair; user-select: none; display: block; }
-  .grid-system text { font-family: sans-serif; font-weight: bold; pointer-events: none; }
+  /* Center */
+  .map-container { flex: 1; min-width: 0; position: relative; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; background: #ffffff; background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
   
-  .toolbar { width: 220px; display: flex; flex-direction: column; gap: 8px; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #ccc; overflow-y: auto; }
+  /* Right Panel */
+  .toolbar { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #ccc; overflow-y: auto; }
   .toolbar h3 { margin: 0 0 2px 0; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
   .spacer { flex-grow: 1; min-height: 10px; }
   
+  /* Shared Elements */
+  .hoverable-point { transition: fill-opacity 0.2s; }
+  .hoverable-point:hover { cursor: pointer; fill-opacity: 0.8 !important; }
+  svg { width: 100%; height: 100%; cursor: crosshair; user-select: none; display: block; }
+  .grid-system text { font-family: sans-serif; font-weight: bold; pointer-events: none; }
   .btn-row { display: flex; gap: 6px; }
   .icon-btn { flex: 1; justify-content: center; padding: 10px 5px; }
 
@@ -514,13 +454,11 @@
   
   .delete-btn { background: #ffebee; border-color: #ef9a9a; color: #c62828; margin-top: 5px; }
   .delete-btn:hover:not(:disabled) { background: #ffcdd2; }
-  
   .action-btn { background: #fff3e0; border-color: #ffcc80; }
   .action-btn:hover { background: #ffe0b2; }
   .save-btn { background: #e8f5e9; border-color: #a5d6a7; font-weight: bold; }
   .save-btn:hover { background: #c8e6c9; }
 
-  /* Properties Panel Styling */
   .properties-panel { background: #fff; border: 1px solid #cce5ff; border-radius: 4px; padding: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: inset 0 0 5px rgba(0,100,255,0.05); }
   .panel-header { font-size: 14px; color: #004dc4; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
   .properties-panel label { display: flex; flex-direction: column; font-size: 12px; color: #555; font-weight: bold; gap: 3px; }

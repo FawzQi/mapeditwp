@@ -5,9 +5,8 @@
   let mapData = [];
   let terminalData = [];
   let mapImageProps = null; 
-  let activeTab = 'waypoint'; // 'waypoint' | 'terminal'
+  let activeTab = 'waypoint';
 
-  // Generic CSV Loader
   function loadCsv(file, onComplete) {
     if (!file) return;
     const reader = new FileReader();
@@ -125,7 +124,6 @@
     const updatedData = event.detail;
     if (updatedData.length === 0) return;
     const headers = Object.keys(updatedData[0]);
-    // Format to 2 decimal places to mimic python save script
     const csvContent = headers.join(',') + '\n' + 
       updatedData.map(row => headers.map(h => typeof row[h] === 'number' ? row[h].toFixed(2) : row[h]).join(',')).join('\n');
     
@@ -161,8 +159,6 @@
   </div>
 
   {#if mapData.length > 0 || terminalData.length > 0 || mapImageProps}
-    
-    <!-- TABS -->
     <div class="tabs">
       <button class:active={activeTab === 'waypoint'} on:click={() => activeTab = 'waypoint'}>📍 Waypoint Editor</button>
       <button class:active={activeTab === 'terminal'} on:click={() => activeTab = 'terminal'}>🎯 Terminal Editor</button>
@@ -192,8 +188,37 @@
 </div>
 
 <style>
-  .map-editor-wrapper { padding: 20px; font-family: sans-serif; max-width: 100%; box-sizing: border-box; }
-  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+  /* 🔥 OVERRIDE VITE DEFAULTS: Forces the app to span the entire screen */
+  :global(#app), :global(body), :global(html) {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow-x: hidden;
+  }
+
+  .map-editor-wrapper { 
+    padding: 15px 20px; 
+    font-family: sans-serif; 
+    width: 100vw; 
+    height: 100vh; /* Force full screen height */
+    box-sizing: border-box; 
+    display: flex;
+    flex-direction: column;
+    background-color: #1a1a1a; /* Matches the dark background of your browser */
+  }
+
+  .top-bar { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 15px; 
+    background: white; 
+    padding: 15px 25px; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+  }
+  
   h1 { margin: 0; font-size: 22px; color: #333; }
   .upload-group { display: flex; gap: 20px; flex-wrap: wrap; }
   .upload-item { display: flex; flex-direction: column; gap: 5px; }
@@ -205,6 +230,11 @@
   .tabs button.active { background: #0064ff; color: white; box-shadow: 0 2px 8px rgba(0,100,255,0.3); }
   .tabs button:hover:not(.active) { background: #dfe4ea; }
 
-  .empty-state { text-align: center; padding: 100px 20px; color: #888; background: white; border: 2px dashed #ccc; border-radius: 8px; font-size: 18px; }
-  .editor-container { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+  .empty-state { text-align: center; padding: 100px 20px; color: #888; background: white; border: 2px dashed #ccc; border-radius: 8px; font-size: 18px; margin-top: 10px; }
+  
+  .editor-container { 
+    flex: 1; /* 🔥 Stretches the editor to fill the remaining bottom space */
+    min-height: 0; /* Required for nested flexbox scrolling */
+    width: 100%; 
+  }
 </style>

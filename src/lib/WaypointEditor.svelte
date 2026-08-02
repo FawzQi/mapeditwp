@@ -18,6 +18,8 @@
   let wpOriginX = 0;
   let wpOriginY = 0;
   let wpOriginYaw = 0; 
+  let wpScale = 1.0; 
+  $: safeScale = wpScale === 0 ? 0.0001 : wpScale; 
   
   let dragStartPos = null;
   let panStartPixel = null;
@@ -32,7 +34,7 @@
 
   const saveState = () => undoStack.push({
     waypoints: JSON.parse(JSON.stringify(waypoints)),
-    wpOriginX, wpOriginY, wpOriginYaw
+    wpOriginX, wpOriginY, wpOriginYaw, wpScale
   });
 
   function undoLastMove() { 
@@ -42,6 +44,7 @@
       wpOriginX = state.wpOriginX;
       wpOriginY = state.wpOriginY;
       wpOriginYaw = state.wpOriginYaw;
+      wpScale = state.wpScale || 1.0;
       selectedIdxs = new Set();
     }
   }
@@ -57,7 +60,6 @@
     selectedIdxs = new Set();
   }
 
-  // NEW: Rotate selected waypoints around their own geometric center
   function rotateSelected(angleDegrees) {
     if (selectedIdxs.size === 0) return;
     saveState();
@@ -66,28 +68,44 @@
     const cosA = Math.cos(angleRad);
     const sinA = Math.sin(angleRad);
     
-    // Find the center point of the current selection
     let cx = 0, cy = 0;
-    for (let i of selectedIdxs) {
-      cx += waypoints[i].x;
-      cy += waypoints[i].y;
-    }
-    cx /= selectedIdxs.size;
-    cy /= selectedIdxs.size;
+    for (let i of selectedIdxs) { cx += waypoints[i].x; cy += waypoints[i].y; }
+    cx /= selectedIdxs.size; cy /= selectedIdxs.size;
     
-    // Rotate each point around that center
     waypoints = waypoints.map((wp, i) => {
       if (selectedIdxs.has(i)) {
-        const dx = wp.x - cx;
-        const dy = wp.y - cy;
-        return {
-          ...wp,
-          x: cx + (dx * cosA - dy * sinA),
-          y: cy + (dx * sinA + dy * cosA)
-        };
+        const dx = wp.x - cx; const dy = wp.y - cy;
+        return { ...wp, x: cx + (dx * cosA - dy * sinA), y: cy + (dx * sinA + dy * cosA) };
       }
       return wp;
     });
+  }
+
+  function autoAlignMap() {
+    if (!mapImage) return alert("Please upload a Map (.pgm & .yaml) first.");
+    const w = mapImage.width;
+    const h = mapImage.height;
+    
+    let calcX = 0.5 + ((w - 779) / 75) * 1.0;
+    let calcY = 0.0 + ((h - 282) / 120) * 0.7;
+    let calcYaw = 0.0095 + ((w - 779) / 75) * -0.0295;
+    
+    wpOriginX = parseFloat(calcX.toFixed(3));
+    wpOriginY = parseFloat(calcY.toFixed(3));
+    wpOriginYaw = parseFloat(calcYaw.toFixed(4));
+    wpScale = mapImage.resolution;
+  }
+
+  function bakeTransform() {
+    saveState();
+    waypoints = waypoints.map(w => {
+      const sx = w.x * safeScale;
+      const sy = w.y * safeScale;
+      const cosT = Math.cos(wpOriginYaw);
+      const sinT = Math.sin(wpOriginYaw);
+      return { ...w, x: sx * cosT - sy * sinT + wpOriginX, y: sx * sinT + sy * cosT + wpOriginY };
+    });
+    wpOriginX = 0; wpOriginY = 0; wpOriginYaw = 0; wpScale = 1.0;
   }
 
   function onKey(event) {
@@ -129,40 +147,32 @@
     if (editMode === 'edit') {
       let closestIdx = -1;
       let minDist = Infinity;
+      const clickThreshold = (pointRadius * 4.0) / safeScale; 
       
       waypoints.forEach((wp, i) => {
         const dist = Math.sqrt(Math.pow(wp.x - coords.x, 2) + Math.pow(wp.y - coords.y, 2));
-        // EDITED: Increased hitbox multiplier from 2.0 to 4.0 to make clicking easier
-        if (dist < minDist && dist < (pointRadius * 4.0)) { minDist = dist; closestIdx = i; }
+        if (dist < minDist && dist < clickThreshold) { minDist = dist; closestIdx = i; }
       });
 
       if (closestIdx !== -1) {
-        // NEW: Alt+Click toggle logic for multi-select
         if (event.altKey) {
-          if (selectedIdxs.has(closestIdx)) {
-            selectedIdxs.delete(closestIdx);
-          } else {
-            selectedIdxs.add(closestIdx);
-          }
-          selectedIdxs = selectedIdxs; // Trigger Svelte reactivity
+          if (selectedIdxs.has(closestIdx)) selectedIdxs.delete(closestIdx);
+          else selectedIdxs.add(closestIdx);
+          selectedIdxs = selectedIdxs; 
         } else if (!selectedIdxs.has(closestIdx)) {
-          selectedIdxs = new Set([closestIdx]); // Normal click (clears other selections)
+          selectedIdxs = new Set([closestIdx]); 
         }
-        
         dragAction = 'move';
-        saveState(); 
-        lockView();
+        saveState(); lockView();
       } else {
         selectedIdxs = new Set(); 
         dragAction = 'rect';
-        rectStart = coords;
-        rectCurrent = coords;
+        rectStart = coords; rectCurrent = coords;
       }
     } 
     else if (editMode === 'zoom') {
       dragAction = 'zoomRect';
-      rectStart = coords; 
-      rectCurrent = coords;
+      rectStart = coords; rectCurrent = coords;
     }
   }
 
@@ -189,8 +199,7 @@
 
     if (dragAction === 'move' && selectedIdxs.size > 0) {
       for (let i of selectedIdxs) { waypoints[i].x += dx; waypoints[i].y += dy; }
-      dragStartPos = coords;
-      waypoints = waypoints; 
+      dragStartPos = coords; waypoints = waypoints; 
     } else if (dragAction === 'rect' || dragAction === 'zoomRect') {
       rectCurrent = coords;
     }
@@ -216,15 +225,15 @@
       }
       rectStart = null; rectCurrent = null;
     }
-    
-    dragAction = 'none'; 
-    dragStartPos = null; 
+    dragAction = 'none'; dragStartPos = null; 
   }
   
   $: transformedWaypoints = waypoints.map(w => {
+    const sx = w.x * safeScale;
+    const sy = w.y * safeScale;
     const cosT = Math.cos(wpOriginYaw);
     const sinT = Math.sin(wpOriginYaw);
-    return { x: w.x * cosT - w.y * sinT + wpOriginX, y: w.x * sinT + w.y * cosT + wpOriginY };
+    return { x: sx * cosT - sy * sinT + wpOriginX, y: sx * sinT + sy * cosT + wpOriginY };
   });
 
   $: wpMinX = transformedWaypoints.length ? Math.min(...transformedWaypoints.map(w => w.x)) : Infinity;
@@ -272,8 +281,7 @@
 
   $: pxScale = activeRangeX / Math.max(svgWidth, 1);
   $: gridStroke = 1 * pxScale;
-  
-  $: lineStroke = 5 * pxScale;
+  $: lineStroke = 5 * pxScale; 
   $: pointRadius = 3 * pxScale;
   $: fontSize = 14 * pxScale;
   
@@ -304,14 +312,43 @@
 <svelte:window on:keydown={onKey} />
 
 <div class="editor-layout">
-  <div class="map-container">
-    <div class="hints-overlay">
-      <strong>Alt+Z:</strong> Undo • 
-      <strong>Alt+Click:</strong> Multi-select •
-      <strong>Del:</strong> Delete • 
-      <strong>Double-Click:</strong> Auto-fit
-    </div>
 
+  <!-- LEFT: INSTRUCTION PANEL -->
+  <div class="info-panel">
+    <h3>📖 How to Use</h3>
+    <div class="info-section">
+      <h4>Mouse Controls</h4>
+      <ul>
+        <li><strong>Left Click:</strong> Select & move points.</li>
+        <li><strong>Right Drag:</strong> Pan the map view.</li>
+        <li><strong>Double-Click:</strong> Auto-fit bounds.</li>
+      </ul>
+    </div>
+    <div class="info-section">
+      <h4>Selection</h4>
+      <ul>
+        <li><strong>Drag empty space:</strong> Select multiple points inside a box.</li>
+        <li><strong>Alt + Click:</strong> Multi-select or deselect individual points.</li>
+      </ul>
+    </div>
+    <div class="info-section">
+      <h4>Shortcuts</h4>
+      <ul>
+        <li><strong>Alt + E:</strong> Edit Mode</li>
+        <li><strong>Alt + X:</strong> Zoom Mode</li>
+        <li><strong>Alt + Z:</strong> Undo</li>
+        <li><strong>Alt + S:</strong> Save</li>
+        <li><strong>Delete:</strong> Remove Selected</li>
+      </ul>
+    </div>
+    <div class="info-section">
+      <h4>Transformations</h4>
+      <p style="margin-top: 5px;">Use the WP Transform tools to align the trajectory. Click <b>Auto-Align</b> to estimate based on map pixel dimensions, or set values manually. Click <b>Apply</b> to bake coordinates.</p>
+    </div>
+  </div>
+
+  <!-- CENTER: MAP RENDERING -->
+  <div class="map-container">
     <svg 
       bind:this={svgElement} bind:clientWidth={svgWidth} bind:clientHeight={svgHeight}
       viewBox="{activeMinX} {-activeMaxY} {activeRangeX} {activeRangeY}"
@@ -319,47 +356,33 @@
       on:mousedown={onPress} on:mousemove={onMotion} on:mouseup={onRelease} on:mouseleave={onRelease}
       on:dblclick={resetZoom} on:contextmenu|preventDefault 
     >
-      
-      <!-- GLOBAL LAYER -->
       <g bind:this={dataLayer} transform="scale(1, -1)">
-        
         {#if mapImage}
           <g transform="rotate({(mapImage.originYaw) * 180 / Math.PI}) translate({mapImage.originX}, {mapImage.originY}) translate(0, {mapImage.height * mapImage.resolution}) scale(1, -1)">
             <image x="0" y="0" width={mapImage.width * mapImage.resolution} height={mapImage.height * mapImage.resolution} href={mapImage.url} preserveAspectRatio="none" />
           </g>
         {/if}
 
-        <!-- ZOOM BOX -->
         {#if rectStart && rectCurrent && dragAction === 'zoomRect'}
-          <rect 
-            x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)}
-            width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)}
-            fill="rgba(0, 100, 255, 0.15)" stroke="blue" stroke-width={lineStroke} stroke-dasharray="{lineStroke * 2}, {lineStroke * 2}"
-          />
+          <rect x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)} width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)} fill="rgba(0, 100, 255, 0.15)" stroke="blue" stroke-width={lineStroke} stroke-dasharray="{lineStroke * 2}, {lineStroke * 2}" />
         {/if}
 
-        <!-- WAYPOINTS LOCAL LAYER -->
-        <g bind:this={wpLayer} transform="translate({0+wpOriginX}, {0+wpOriginY}) rotate({(0+wpOriginYaw) * 180 / Math.PI})">
-          
-          <polyline points={pointsString} fill="none" stroke="rgba(0, 0, 255, 0.4)" stroke-width={lineStroke} />
-          
-          {#each waypoints as wp, i}
-            <circle cx={wp.x} cy={wp.y} r={(pointRadius>0.05 ? pointRadius : 0.05)} fill={selectedIdxs.has(i) ? "red" : "#0064ff"} />
-          {/each}
-
-          <!-- GROUP SELECTION BOX -->
+        <g bind:this={wpLayer} transform="translate({0+wpOriginX}, {0+wpOriginY}) rotate({(0+wpOriginYaw) * 180 / Math.PI}) scale({safeScale})">
+          <polyline points={pointsString} fill="none" stroke="rgba(0, 0, 255, 0.4)" stroke-width={lineStroke / safeScale} />
+         {#each waypoints as wp, i}
+  <circle 
+    cx={wp.x} cy={wp.y} 
+    r={Math.max(pointRadius / safeScale, 0.05 / safeScale)} 
+    fill={selectedIdxs.has(i) ? "red" : "#0064ff"} 
+    class="hoverable-point" 
+  />
+{/each}
           {#if rectStart && rectCurrent && dragAction === 'rect'}
-            <rect 
-              x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)}
-              width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)}
-              fill="rgba(0, 200, 0, 0.1)" stroke="green" stroke-width={lineStroke} stroke-dasharray="{lineStroke * 2}, {lineStroke * 2}"
-            />
+            <rect x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)} width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)} fill="rgba(0, 200, 0, 0.1)" stroke="green" stroke-width={lineStroke / safeScale} stroke-dasharray="{(lineStroke * 2) / safeScale}, {(lineStroke * 2) / safeScale}" />
           {/if}
-
         </g>
       </g>
 
-      <!-- GRID SYSTEM -->
       <g class="grid-system">
         {#each xTicks as x}
           <line x1={x} y1={-activeMaxY} x2={x} y2={-activeMinY} stroke="rgba(200,200,200,0.5)" stroke-width={gridStroke} />
@@ -373,6 +396,7 @@
     </svg>
   </div>
 
+  <!-- RIGHT: TOOLBAR -->
   <div class="toolbar">
     <h3>Tools</h3>
     <button class:active={editMode === 'edit'} on:click={() => setMode('edit')}><span>👆</span> Edit (Alt+E)</button>
@@ -380,51 +404,58 @@
     
     <div class="spacer"></div>
 
-    <!-- NEW: Rotate and Modify Section -->
     <h3>Modify Selection</h3>
     <div class="btn-row">
-      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title="Rotate   Clockwise">
-        <span>rotate ↺</span> 
-      </button>
-      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title="Rotate  Counter-Clockwise">
-        <span>↻ rotate</span>  
-      </button>
+      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title="Rotate Clockwise"><span>rotate ↺</span></button>
+      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title="Rotate Counter-Clockwise"><span>↻ rotate</span></button>
     </div>
-    
-    <button class="delete-btn" on:click={deleteSelectedPoints} disabled={selectedIdxs.size === 0}>
-      <span>🗑️</span> Delete (Del)
-    </button>
+    <button class="delete-btn" on:click={deleteSelectedPoints} disabled={selectedIdxs.size === 0}><span>🗑️</span> Delete (Del)</button>
+
+    <div class="spacer"></div>
+
+    <h3>WP Transform</h3>
+    <div class="origin-inputs">
+      <label>X: <input type="number" step="0.5" bind:value={wpOriginX}></label>
+      <label>Y: <input type="number" step="0.5" bind:value={wpOriginY}></label>
+      <label>Yaw: <input type="number" step="0.01" bind:value={wpOriginYaw}></label>
+      <label>Scale: <input type="number" step="0.01" bind:value={wpScale}></label>
+      <button class="sync-btn" on:click={autoAlignMap}>Auto-Align</button>
+      <button class="bake-btn" on:click={bakeTransform}>Apply to Points</button>
+    </div>
 
     <div class="spacer"></div>
 
     <h3>Actions</h3>
     <button class="action-btn" on:click={undoLastMove}><span>↩️</span> Undo (Alt+Z)</button>
-    <button class="save-btn" on:click={() => dispatch('save', waypoints)}><span>💾</span> Save Map (Alt+S)</button>
+    <button class="save-btn" on:click={() => dispatch('save', waypoints)}><span>💾</span> Save Map</button>
   </div>
 </div>
 
 <style>
-  .editor-layout { display: flex; gap: 15px; height: 85vh; width: 100%; font-family: sans-serif; }
-  .map-container { flex: 1; position: relative; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; background: #ffffff; }
-    
-  .map-container {
-    background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-  }
+ /* Change this first line in your <style> block */
+  .editor-layout { display: flex; flex-direction: row; gap: 15px; height: 100%; width: 100%; font-family: sans-serif; box-sizing: border-box; }
+  /* Left Panel */
+  .info-panel { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #ccc; overflow-y: auto; }
+  .info-panel h3 { margin: 0; font-size: 16px; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 8px;}
+  .info-section { font-size: 13px; color: #555; line-height: 1.5; }
+  .info-section h4 { margin: 0 0 5px 0; font-size: 13px; color: #0064ff; text-transform: uppercase; }
+  .info-section ul { margin: 0; padding-left: 20px; }
+
+  /* Center */
+  .map-container { flex: 1; min-width: 0; position: relative; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; background: #ffffff; background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
   
-  .hints-overlay { position: absolute; top: 10px; right: 15px; background: rgba(255, 255, 255, 0.9); padding: 6px 12px; border-radius: 4px; font-size: 12px; color: #444; box-shadow: 0 1px 4px rgba(0,0,0,0.1); pointer-events: none; z-index: 10; }
-  svg { width: 100%; height: 100%; cursor: crosshair; user-select: none; display: block; }
-  .grid-system text { font-family: sans-serif; font-weight: bold; pointer-events: none; }
-  
-  .toolbar { width: 210px; display: flex; flex-direction: column; gap: 8px; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #ccc; overflow-y: auto; }
+  /* Right Panel */
+  .toolbar { width: 250px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #ccc; overflow-y: auto; }
   .toolbar h3 { margin: 0 0 2px 0; font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
   .spacer { flex-grow: 1; min-height: 10px; }
   
-  /* Flexbox configuration for the new row of rotation buttons */
+  /* Shared Elements */
+  .hoverable-point:hover { fill: rgba(0, 0, 255, 0.3) !important; cursor: grab; }
+  svg { width: 100%; height: 100%; cursor: crosshair; user-select: none; display: block; }
+  .grid-system text { font-family: sans-serif; font-weight: bold; pointer-events: none; }
   .btn-row { display: flex; gap: 6px; }
   .icon-btn { flex: 1; justify-content: center; padding: 10px 5px; }
-  
+
   button { display: flex; align-items: center; gap: 8px; padding: 10px; font-size: 14px; text-align: left; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; transition: all 0.2s; color: #333; }
   button:hover:not(:disabled) { background: #f0f0f0; border-color: #bbb; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -432,9 +463,16 @@
   
   .delete-btn { background: #ffebee; border-color: #ef9a9a; color: #c62828; }
   .delete-btn:hover:not(:disabled) { background: #ffcdd2; }
-  
   .action-btn { background: #fff3e0; border-color: #ffcc80; }
   .action-btn:hover { background: #ffe0b2; }
   .save-btn { background: #e8f5e9; border-color: #a5d6a7; font-weight: bold; }
   .save-btn:hover { background: #c8e6c9; }
+
+  .origin-inputs { display: flex; flex-direction: column; gap: 6px; background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+  .origin-inputs label { display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #444; }
+  .origin-inputs input { width: 80px; padding: 4px; font-family: monospace; border: 1px solid #ccc; border-radius: 3px; }
+  .sync-btn { margin-top: 4px; justify-content: center; background: #f3e5f5; border-color: #ce93d8; color: #6a1b9a; font-weight: bold; padding: 6px; }
+  .sync-btn:hover { background: #e1bee7; }
+  .bake-btn { justify-content: center; background: #e3f2fd; border-color: #90caf9; color: #1565c0; font-weight: bold; padding: 6px; }
+  .bake-btn:hover { background: #bbdefb; }
 </style>
