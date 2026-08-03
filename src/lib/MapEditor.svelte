@@ -6,6 +6,53 @@
   let terminalData = [];
   let mapImageProps = null; 
   let activeTab = 'waypoint';
+  
+  // Toast Notification State
+  let toastMessage = "";
+
+  // --- LANGUAGE STATE & DICTIONARY ---
+  let lang = 'en';
+
+  const i18n = {
+    en: {
+      title: "Map Configurator",
+      uploadMap: "Upload Map (.pgm & .yaml)",
+      uploadWp: "Upload Waypoints (CSV)",
+      uploadTerm: "Upload Terminals (CSV)",
+      wpEditor: "📍 Waypoint Editor",
+      termEditor: "🎯 Terminal Editor",
+      emptyState: "📁 Please upload data or a Map image to begin editing.",
+      errBothFiles: "⚠️ Please select BOTH the .pgm and .yaml/.yml files at the same time.",
+      errPgmFormat: "Error: Only binary (P5) PGM files are supported.",
+      errNoData: "⚠️ No data available to save.",
+      successSave: "✅ Successfully saved"
+    },
+    id: {
+      title: "Konfigurator Peta",
+      uploadMap: "Unggah Peta (.pgm & .yaml)",
+      uploadWp: "Unggah Waypoint (CSV)",
+      uploadTerm: "Unggah Terminal (CSV)",
+      wpEditor: "📍 Editor Waypoint",
+      termEditor: "🎯 Editor Terminal",
+      emptyState: "📁 Silakan unggah data atau gambar Peta untuk mulai mengedit.",
+      errBothFiles: "⚠️ Harap pilih KEDUA file .pgm dan .yaml/.yml secara bersamaan.",
+      errPgmFormat: "Galat: Hanya file PGM biner (P5) yang didukung.",
+      errNoData: "⚠️ Tidak ada data yang tersedia untuk disimpan.",
+      successSave: "✅ Berhasil menyimpan"
+    }
+  };
+
+  function toggleLanguage() {
+    lang = lang === 'en' ? 'id' : 'en';
+  }
+  // -----------------------------------
+
+  function showToast(message) {
+    toastMessage = message;
+    setTimeout(() => {
+      toastMessage = "";
+    }, 3000);
+  }
 
   function loadCsv(file, onComplete) {
     if (!file) return;
@@ -51,7 +98,7 @@
       if (file.name.toLowerCase().endsWith('.yaml') || file.name.toLowerCase().endsWith('.yml')) yamlFile = file;
     }
 
-    if (!pgmFile || !yamlFile) return alert("⚠️ Please select BOTH the .pgm and .yaml/.yml files at the same time.");
+    if (!pgmFile || !yamlFile) return alert(i18n[lang].errBothFiles);
 
     const yamlText = await yamlFile.text();
     const resMatch = yamlText.match(/resolution:\s*([\d.]+)/);
@@ -83,7 +130,7 @@
     }
 
     const magic = nextToken();
-    if (magic !== 'P5') return alert("Error: Only binary (P5) PGM files are supported.");
+    if (magic !== 'P5') return alert(i18n[lang].errPgmFormat);
     
     const imgWidth = parseInt(nextToken());
     const imgHeight = parseInt(nextToken());
@@ -122,10 +169,25 @@
 
   function handleSave(event, filename) {
     const updatedData = event.detail;
-    if (updatedData.length === 0) return;
+    if (updatedData.length === 0) {
+      showToast(i18n[lang].errNoData);
+      return;
+    }
+    
     const headers = Object.keys(updatedData[0]);
+    
     const csvContent = headers.join(',') + '\n' + 
-      updatedData.map(row => headers.map(h => typeof row[h] === 'number' ? row[h].toFixed(2) : row[h]).join(',')).join('\n');
+      updatedData.map(row => headers.map(h => {
+        let val = row[h];
+        if (typeof val === 'number') {
+          if (h === 'id' || h === 'type') {
+            return Math.round(val).toString();
+          } else {
+            return val.toFixed(2);
+          }
+        }
+        return val;
+      }).join(',')).join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -136,23 +198,31 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    showToast(`${i18n[lang].successSave} ${filename}!`);
   }
 </script>
 
 <div class="map-editor-wrapper">
   <div class="top-bar">
-    <h1>Map Configurator</h1>
+    <div class="title-group">
+      <h1>{i18n[lang].title}</h1>
+      <button class="lang-toggle" on:click={toggleLanguage}>
+        {lang === 'en' ? 'Language: 🇬🇧 EN' : 'Bahasa: 🇮🇩 ID' }
+      </button>
+    </div>
+    
     <div class="upload-group">
       <div class="upload-item">
-        <label>Upload Map (.pgm & .yaml)</label>
+        <label>{i18n[lang].uploadMap}</label>
         <input type="file" multiple accept=".pgm, .yaml, .yml" on:change={handleMapUpload} />
       </div>
       <div class="upload-item">
-        <label>Upload Waypoints (CSV)</label>
+        <label>{i18n[lang].uploadWp}</label>
         <input type="file" accept=".csv, .tsv, .txt" on:change={handleWaypointUpload} />
       </div>
       <div class="upload-item">
-        <label>Upload Terminals (CSV)</label>
+        <label>{i18n[lang].uploadTerm}</label>
         <input type="file" accept=".csv, .tsv, .txt" on:change={handleTerminalUpload} />
       </div>
     </div>
@@ -160,19 +230,26 @@
 
   {#if mapData.length > 0 || terminalData.length > 0 || mapImageProps}
     <div class="tabs">
-      <button class:active={activeTab === 'waypoint'} on:click={() => activeTab = 'waypoint'}>📍 Waypoint Editor</button>
-      <button class:active={activeTab === 'terminal'} on:click={() => activeTab = 'terminal'}>🎯 Terminal Editor</button>
+      <button class:active={activeTab === 'waypoint'} on:click={() => activeTab = 'waypoint'}>
+        {i18n[lang].wpEditor}
+      </button>
+      <button class:active={activeTab === 'terminal'} on:click={() => activeTab = 'terminal'}>
+        {i18n[lang].termEditor}
+      </button>
     </div>
 
     <div class="editor-container">
       {#if activeTab === 'waypoint'}
+        <!-- We pass 'lang' down as a prop in case you want to translate the child components later -->
         <WaypointEditor 
+          {lang}
           waypoints={mapData} 
           mapImage={mapImageProps} 
           on:save={(e) => handleSave(e, 'edited_waypoints.csv')} 
         />
       {:else}
         <TerminalEditor 
+          {lang}
           terminals={terminalData}
           waypoints={mapData} 
           mapImage={mapImageProps} 
@@ -182,13 +259,18 @@
     </div>
   {:else}
     <div class="empty-state">
-      <p>📁 Please upload data or a Map image to begin editing.</p>
+      <p>{i18n[lang].emptyState}</p>
     </div>
   {/if}
 </div>
 
+{#if toastMessage}
+  <div class="toast-notification">
+    {toastMessage}
+  </div>
+{/if}
+
 <style>
-  /* 🔥 OVERRIDE VITE DEFAULTS: Forces the app to span the entire screen */
   :global(#app), :global(body), :global(html) {
     max-width: 100vw !important;
     width: 100vw !important;
@@ -201,11 +283,11 @@
     padding: 15px 20px; 
     font-family: sans-serif; 
     width: 100vw; 
-    height: 100vh; /* Force full screen height */
+    height: 100vh;
     box-sizing: border-box; 
     display: flex;
     flex-direction: column;
-    background-color: #1a1a1a; /* Matches the dark background of your browser */
+    background-color: #1a1a1a; 
   }
 
   .top-bar { 
@@ -218,8 +300,33 @@
     border-radius: 8px; 
     box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
   }
+
+  .title-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
   
   h1 { margin: 0; font-size: 22px; color: #333; }
+
+  /* LANGUAGE TOGGLE BUTTON STYLES */
+  .lang-toggle {
+    background: #f1f3f5;
+    border: 1px solid #ced4da;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .lang-toggle:hover {
+    background: #e2e6ea;
+    border-color: #adb5bd;
+  }
+
   .upload-group { display: flex; gap: 20px; flex-wrap: wrap; }
   .upload-item { display: flex; flex-direction: column; gap: 5px; }
   .upload-item label { font-size: 12px; font-weight: bold; color: #666; text-transform: uppercase; }
@@ -232,9 +339,30 @@
 
   .empty-state { text-align: center; padding: 100px 20px; color: #888; background: white; border: 2px dashed #ccc; border-radius: 8px; font-size: 18px; margin-top: 10px; }
   
-  .editor-container { 
-    flex: 1; /* 🔥 Stretches the editor to fill the remaining bottom space */
-    min-height: 0; /* Required for nested flexbox scrolling */
-    width: 100%; 
+  .editor-container { flex: 1; min-height: 0; width: 100%; }
+
+  .toast-notification {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #28a745;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    font-family: sans-serif;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 9999;
+    animation: slideIn 0.3s ease-out forwards, fadeOut 0.3s ease-in 2.7s forwards;
+  }
+
+  @keyframes slideIn {
+    0% { transform: translateX(100%); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
   }
 </style>

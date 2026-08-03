@@ -3,7 +3,93 @@
   
   export let waypoints = []; 
   export let mapImage = null;
-  
+  export let lang = 'en';
+
+  const i18n = {
+    en: {
+      howToUse: "📖 How to Use",
+      mouseControls: "Mouse Controls",
+      labelLeftClick: "Left Click",
+      leftClick: "Select & move points.",
+      labelRightDrag: "Right Drag",
+      rightDrag: "Pan the map view.",
+      labelDoubleClick: "Double-Click",
+      doubleClick: "Auto-fit bounds/Zoom out.",
+      selection: "Selection",
+      labelDragEmpty: "Drag empty space",
+      dragEmpty: "Select multiple points inside a box.",
+      labelAltClick: "Alt + Click",
+      altClick: "Multi-select or deselect individual points.",
+      shortcuts: "Shortcuts",
+      shortcutEdit: "Edit Mode",
+      shortcutZoom: "Zoom Mode",
+      shortcutUndo: "Undo",
+      shortcutSave: "Save",
+      shortcutDelete: "Remove Selected",
+      transformations: "Transformations",
+      transformDesc: "Use the WP Transform tools to align the trajectory. Click <b>Auto-Align</b> to estimate based on map pixel dimensions, or set values manually. Click <b>Apply</b> to bake coordinates.",
+      errUploadMapFirst: "Please upload a Map (.pgm & .yaml) first.",
+
+      tools: "Tools",
+      editMode: "Edit (Alt+E)",
+      zoomMode: "Zoom (Alt+X)",
+      modifySelection: "Modify Selection",
+      rotateClockwise: "rotate ↺",
+      rotateCounterClockwise: "↻ rotate",
+      titleRotateCw: "Rotate Clockwise",
+      titleRotateCcw: "Rotate Counter-Clockwise",
+      deleteSelected: "Delete (Del)",
+      wpTransform: "WP Transform",
+      labelScale: "Scale",
+      autoAlign: "Auto-Align",
+      applyToPoints: "Apply to Points",
+      actions: "Actions",
+      undo: "Undo (Alt+Z)",
+      saveMap: "Save Map"
+    },
+    id: {
+      howToUse: "📖 Cara Penggunaan",
+      mouseControls: "Kontrol Mouse",
+      labelLeftClick: "Klik Kiri",
+      leftClick: "Pilih & pindahkan titik.",
+      labelRightDrag: "Geser Kanan",
+      rightDrag: "Geser tampilan peta.",
+      labelDoubleClick: "Klik Ganda",
+      doubleClick: "Sesuaikan tampilan otomatis / Zoom out.",
+      selection: "Pilihan",
+      labelDragEmpty: "Seret area kosong",
+      dragEmpty: "Pilih banyak titik di dalam kotak.",
+      labelAltClick: "Alt + Klik",
+      altClick: "Pilih / batal pilih beberapa titik secara individual.",
+      shortcuts: "Pintasan",
+      shortcutEdit: "Mode Edit",
+      shortcutZoom: "Mode Pembesaran",
+      shortcutUndo: "Batalkan",
+      shortcutSave: "Simpan",
+      shortcutDelete: "Hapus Yang Dipilih",
+      transformations: "Transformasi",
+      transformDesc: "Gunakan alat Transformasi WP untuk menyelaraskan lintasan. Klik <b>Auto-Align</b> untuk mengestimasi berdasarkan dimensi piksel peta, atau atur nilai secara manual. Klik <b>Terapkan ke Titik</b> untuk mengaplikasikan koordinat.",
+      errUploadMapFirst: "Silakan unggah Peta (.pgm & .yaml) terlebih dahulu.",
+
+      tools: "Alat",
+      editMode: "Edit (Alt+E)",
+      zoomMode: "Pembesaran (Alt+X)",
+      modifySelection: "Ubah Pilihan",
+      rotateClockwise: "putar ↺",
+      rotateCounterClockwise: "↻ putar",
+      titleRotateCw: "Putar Searah Jarum Jam",
+      titleRotateCcw: "Putar Berlawanan Jarum Jam",
+      deleteSelected: "Hapus (Del)",
+      wpTransform: "Transformasi WP",
+      labelScale: "Skala",
+      autoAlign: "Ratakan Otomatis",
+      applyToPoints: "Terapkan ke Titik",
+      actions: "Aksi",
+      undo: "Batalkan (Alt+Z)",
+      saveMap: "Simpan Peta"
+    }
+  };
+
   const dispatch = createEventDispatcher();
 
   let editMode = 'edit';
@@ -82,7 +168,7 @@
   }
 
   function autoAlignMap() {
-    if (!mapImage) return alert("Please upload a Map (.pgm & .yaml) first.");
+    if (!mapImage) return alert(i18n[lang].errUploadMapFirst);
     const w = mapImage.width;
     const h = mapImage.height;
     
@@ -315,41 +401,43 @@
 
   <!-- LEFT: INSTRUCTION PANEL -->
   <div class="info-panel">
-    <h3>📖 How to Use</h3>
+    <h3>{i18n[lang].howToUse}</h3>
     <div class="info-section">
-      <h4>Mouse Controls</h4>
+      <h4>{i18n[lang].mouseControls}</h4>
       <ul>
-        <li><strong>Left Click:</strong> Select & move points.</li>
-        <li><strong>Right Drag:</strong> Pan the map view.</li>
-        <li><strong>Double-Click:</strong> Auto-fit bounds.</li>
+        <li><strong>{i18n[lang].labelLeftClick}:</strong> {i18n[lang].leftClick}</li>
+        <li><strong>{i18n[lang].labelRightDrag}:</strong> {i18n[lang].rightDrag}</li>
+        <li><strong>{i18n[lang].labelDoubleClick}:</strong> {i18n[lang].doubleClick}</li>
       </ul>
     </div>
     <div class="info-section">
-      <h4>Selection</h4>
+      <h4>{i18n[lang].selection}</h4>
       <ul>
-        <li><strong>Drag empty space:</strong> Select multiple points inside a box.</li>
-        <li><strong>Alt + Click:</strong> Multi-select or deselect individual points.</li>
+        <li><strong>{i18n[lang].labelDragEmpty}:</strong> {i18n[lang].dragEmpty}</li>
+        <li><strong>{i18n[lang].labelAltClick}:</strong> {i18n[lang].altClick}</li>
       </ul>
     </div>
     <div class="info-section">
-      <h4>Shortcuts</h4>
+      <h4>{i18n[lang].shortcuts}</h4>
       <ul>
-        <li><strong>Alt + E:</strong> Edit Mode</li>
-        <li><strong>Alt + X:</strong> Zoom Mode</li>
-        <li><strong>Alt + Z:</strong> Undo</li>
-        <li><strong>Alt + S:</strong> Save</li>
-        <li><strong>Delete:</strong> Remove Selected</li>
+        <li><strong>Alt + E:</strong> {i18n[lang].shortcutEdit}</li>
+        <li><strong>Alt + X:</strong> {i18n[lang].shortcutZoom}</li>
+        <li><strong>Alt + Z:</strong> {i18n[lang].shortcutUndo}</li>
+        <li><strong>Alt + S:</strong> {i18n[lang].shortcutSave}</li>
+        <li><strong>Delete:</strong> {i18n[lang].shortcutDelete}</li>
       </ul>
     </div>
     <div class="info-section">
-      <h4>Transformations</h4>
-      <p style="margin-top: 5px;">Use the WP Transform tools to align the trajectory. Click <b>Auto-Align</b> to estimate based on map pixel dimensions, or set values manually. Click <b>Apply</b> to bake coordinates.</p>
+      <h4>{i18n[lang].transformations}</h4>
+      <p style="margin-top: 5px;">{@html i18n[lang].transformDesc}</p>
     </div>
   </div>
 
   <!-- CENTER: MAP RENDERING -->
   <div class="map-container">
     <svg 
+      role="application"
+      aria-label="Map Editor"
       bind:this={svgElement} bind:clientWidth={svgWidth} bind:clientHeight={svgHeight}
       viewBox="{activeMinX} {-activeMaxY} {activeRangeX} {activeRangeY}"
       preserveAspectRatio="none"
@@ -378,7 +466,7 @@
   />
 {/each}
           {#if rectStart && rectCurrent && dragAction === 'rect'}
-            <rect x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)} width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)} fill="rgba(0, 200, 0, 0.1)" stroke="green" stroke-width={lineStroke / safeScale} stroke-dasharray="{(lineStroke * 2) / safeScale}, {(lineStroke * 2) / safeScale}" />
+            <rect x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)} width={Math.abs(rectStart.x - rectCurrent.x)} height={Math.abs(rectCurrent.y - rectStart.y)} fill="rgba(0, 200, 0, 0.1)" stroke="green" stroke-width={lineStroke / safeScale} stroke-dasharray="{(lineStroke * 2) / safeScale}, {(lineStroke * 2) / safeScale}" />
           {/if}
         </g>
       </g>
@@ -398,36 +486,36 @@
 
   <!-- RIGHT: TOOLBAR -->
   <div class="toolbar">
-    <h3>Tools</h3>
-    <button class:active={editMode === 'edit'} on:click={() => setMode('edit')}><span>👆</span> Edit (Alt+E)</button>
-    <button class:active={editMode === 'zoom'} on:click={() => setMode('zoom')}><span>🔍</span> Zoom (Alt+X)</button>
+    <h3>{i18n[lang].tools}</h3>
+    <button class:active={editMode === 'edit'} on:click={() => setMode('edit')}><span>👆</span> {i18n[lang].editMode}</button>
+    <button class:active={editMode === 'zoom'} on:click={() => setMode('zoom')}><span>🔍</span> {i18n[lang].zoomMode}</button>
     
     <div class="spacer"></div>
 
-    <h3>Modify Selection</h3>
+    <h3>{i18n[lang].modifySelection}</h3>
     <div class="btn-row">
-      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title="Rotate Clockwise"><span>rotate ↺</span></button>
-      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title="Rotate Counter-Clockwise"><span>↻ rotate</span></button>
+      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title={i18n[lang].titleRotateCw}><span>{i18n[lang].rotateClockwise}</span></button>
+      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title={i18n[lang].titleRotateCcw}><span>{i18n[lang].rotateCounterClockwise}</span></button>
     </div>
-    <button class="delete-btn" on:click={deleteSelectedPoints} disabled={selectedIdxs.size === 0}><span>🗑️</span> Delete (Del)</button>
+    <button class="delete-btn" on:click={deleteSelectedPoints} disabled={selectedIdxs.size === 0}><span>🗑️</span> {i18n[lang].deleteSelected}</button>
 
     <div class="spacer"></div>
 
-    <h3>WP Transform</h3>
+    <h3>{i18n[lang].wpTransform}</h3>
     <div class="origin-inputs">
       <label>X: <input type="number" step="0.5" bind:value={wpOriginX}></label>
       <label>Y: <input type="number" step="0.5" bind:value={wpOriginY}></label>
       <label>Yaw: <input type="number" step="0.01" bind:value={wpOriginYaw}></label>
-      <label>Scale: <input type="number" step="0.01" bind:value={wpScale}></label>
-      <button class="sync-btn" on:click={autoAlignMap}>Auto-Align</button>
-      <button class="bake-btn" on:click={bakeTransform}>Apply to Points</button>
+      <label>{i18n[lang].labelScale}: <input type="number" step="0.01" bind:value={wpScale}></label>
+      <button class="sync-btn" on:click={autoAlignMap}>{i18n[lang].autoAlign}</button>
+      <button class="bake-btn" on:click={bakeTransform}>{i18n[lang].applyToPoints}</button>
     </div>
 
     <div class="spacer"></div>
 
-    <h3>Actions</h3>
-    <button class="action-btn" on:click={undoLastMove}><span>↩️</span> Undo (Alt+Z)</button>
-    <button class="save-btn" on:click={() => dispatch('save', waypoints)}><span>💾</span> Save Map</button>
+    <h3>{i18n[lang].actions}</h3>
+    <button class="action-btn" on:click={undoLastMove}><span>↩️</span> {i18n[lang].undo}</button>
+    <button class="save-btn" on:click={() => dispatch('save', waypoints)}><span>💾</span> {i18n[lang].saveMap}</button>
   </div>
 </div>
 

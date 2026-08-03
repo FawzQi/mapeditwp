@@ -4,6 +4,106 @@
   export let terminals = []; 
   export let waypoints = []; // Read-only visual context
   export let mapImage = null;
+  export let lang = 'en';
+
+  const i18n = {
+    en: {
+      howToUse: "📖 How to Use",
+      mouseControls: "Mouse Controls",
+      labelLeftClick: "Left Click",
+      leftClick: "Select & move terminals.",
+      labelRightDrag: "Right Drag",
+      rightDrag: "Pan the map view.",
+      labelDoubleClick: "Double-Click",
+      doubleClick: "Auto-fit bounds.",
+      selection: "Selection",
+      labelDragEmpty: "Drag empty space",
+      dragEmpty: "Select multiple terminals.",
+      labelAltClick: "Alt + Click",
+      altClick: "Multi-select individual terminals.",
+      addingModifying: "Adding & Modifying",
+      labelAdd: "Add",
+      addDesc: "Select the ➕ tool and click the map.",
+      labelRotate: "Rotate",
+      rotateDesc: "Select terminals and use the rotation buttons to turn them & their Theta.",
+      labelProperties: "Properties",
+      propDesc: "Select <b>exactly one</b> terminal to change its type and speeds.",
+      types: "Types",
+      type1: "Type 1: Stop Area",
+      type2: "Type 2: Slow Area",
+      type32: "Type 32: Fast Area",
+
+      tools: "Tools",
+      selectEdit: "Select/Edit",
+      addTerminal: "Add Terminal",
+      zoom: "Zoom",
+      modifySelection: "Modify Selection",
+      rotateClockwise: "rotate ↺",
+      rotateCounterClockwise: "↻ rotate",
+      titleRotateCw: "Rotate Clockwise",
+      titleRotateCcw: "Rotate Counter-Clockwise",
+      deleteSelected: "Delete Selected",
+      terminalId: "Terminal ID",
+      terminalsSelected: "Terminals Selected",
+      selectSinglePrompt: "Select a single terminal to edit its individual attributes.",
+      typeLabel: "Type (1,2,32)",
+      radiusArea: "Radius Area",
+      thetaRad: "Theta (rad)",
+      maxVx: "Max Vx",
+      maxVtheta: "Max VTheta",
+      actions: "Actions",
+      undoAction: "Undo Action",
+      saveTerminals: "Save Terminals"
+    },
+    id: {
+      howToUse: "📖 Cara Penggunaan",
+      mouseControls: "Kontrol Mouse",
+      labelLeftClick: "Klik Kiri",
+      leftClick: "Pilih & pindahkan terminal.",
+      labelRightDrag: "Geser Kanan",
+      rightDrag: "Geser tampilan peta.",
+      labelDoubleClick: "Klik Ganda",
+      doubleClick: "Sesuaikan tampilan otomatis.",
+      selection: "Pilihan",
+      labelDragEmpty: "Seret area kosong",
+      dragEmpty: "Pilih beberapa terminal.",
+      labelAltClick: "Alt + Klik",
+      altClick: "Pilih beberapa terminal secara individual.",
+      addingModifying: "Menambah & Mengubah",
+      labelAdd: "Tambah",
+      addDesc: "Pilih alat ➕ dan klik pada peta.",
+      labelRotate: "Putar",
+      rotateDesc: "Pilih terminal dan gunakan tombol putar untuk memutar posisi & nilai Theta.",
+      labelProperties: "Properti",
+      propDesc: "Pilih <b>tepat satu</b> terminal untuk mengubah tipe dan kecepatannya.",
+      types: "Tipe Terminal",
+      type1: "Tipe 1: Area Berhenti",
+      type2: "Tipe 2: Area Lambat",
+      type32: "Tipe 32: Area Cepat",
+
+      tools: "Alat",
+      selectEdit: "Pilih/Edit",
+      addTerminal: "Tambah Terminal",
+      zoom: "Pembesaran",
+      modifySelection: "Ubah Pilihan",
+      rotateClockwise: "putar ↺",
+      rotateCounterClockwise: "↻ putar",
+      titleRotateCw: "Putar Searah Jarum Jam",
+      titleRotateCcw: "Putar Berlawanan Jarum Jam",
+      deleteSelected: "Hapus Yang Dipilih",
+      terminalId: "ID Terminal",
+      terminalsSelected: "Terminal Dipilih",
+      selectSinglePrompt: "Pilih satu terminal untuk mengedit atributnya.",
+      typeLabel: "Tipe (1,2,32)",
+      radiusArea: "Area Radius",
+      thetaRad: "Theta (rad)",
+      maxVx: "Vx Maks",
+      maxVtheta: "VTheta Maks",
+      actions: "Aksi",
+      undoAction: "Batalkan Aksi",
+      saveTerminals: "Simpan Terminal"
+    }
+  };
   
   const dispatch = createEventDispatcher();
 
@@ -288,36 +388,36 @@
 
   <!-- LEFT: INSTRUCTION PANEL -->
   <div class="info-panel">
-    <h3>📖 How to Use</h3>
+    <h3>{i18n[lang].howToUse}</h3>
     <div class="info-section">
-      <h4>Mouse Controls</h4>
+      <h4>{i18n[lang].mouseControls}</h4>
       <ul>
-        <li><strong>Left Click:</strong> Select & move terminals.</li>
-        <li><strong>Right Drag:</strong> Pan the map view.</li>
-        <li><strong>Double-Click:</strong> Auto-fit bounds.</li>
+        <li><strong>{i18n[lang].labelLeftClick}:</strong> {i18n[lang].leftClick}</li>
+        <li><strong>{i18n[lang].labelRightDrag}:</strong> {i18n[lang].rightDrag}</li>
+        <li><strong>{i18n[lang].labelDoubleClick}:</strong> {i18n[lang].doubleClick}</li>
       </ul>
     </div>
     <div class="info-section">
-      <h4>Selection</h4>
+      <h4>{i18n[lang].selection}</h4>
       <ul>
-        <li><strong>Drag empty space:</strong> Select multiple terminals.</li>
-        <li><strong>Alt + Click:</strong> Multi-select individual terminals.</li>
+        <li><strong>{i18n[lang].labelDragEmpty}:</strong> {i18n[lang].dragEmpty}</li>
+        <li><strong>{i18n[lang].labelAltClick}:</strong> {i18n[lang].altClick}</li>
       </ul>
     </div>
     <div class="info-section">
-      <h4>Adding & Modifying</h4>
+      <h4>{i18n[lang].addingModifying}</h4>
       <ul>
-        <li><strong>Add:</strong> Select the ➕ tool and click the map.</li>
-        <li><strong>Rotate:</strong> Select terminals and use the rotation buttons to turn them & their Theta.</li>
-        <li><strong>Properties:</strong> Select <b>exactly one</b> terminal to change its type and speeds.</li>
+        <li><strong>{i18n[lang].labelAdd}:</strong> {i18n[lang].addDesc}</li>
+        <li><strong>{i18n[lang].labelRotate}:</strong> {i18n[lang].rotateDesc}</li>
+        <li><strong>{i18n[lang].labelProperties}:</strong> {@html i18n[lang].propDesc}</li>
       </ul>
     </div>
     <div class="info-section">
-      <h4>Types</h4>
+      <h4>{i18n[lang].types}</h4>
       <ul>
-        <li style="color: orange; font-weight: bold;">Type 1: Stop Area</li>
-        <li style="color: #c9aa00; font-weight: bold;">Type 2: Slow Area</li>
-        <li style="color: green; font-weight: bold;">Type 32: Fast Area</li>
+        <li style="color: orange; font-weight: bold;">{i18n[lang].type1}</li>
+        <li style="color: #c9aa00; font-weight: bold;">{i18n[lang].type2}</li>
+        <li style="color: green; font-weight: bold;">{i18n[lang].type32}</li>
       </ul>
     </div>
   </div>
@@ -325,6 +425,8 @@
   <!-- CENTER: MAP RENDERING -->
   <div class="map-container">
     <svg 
+      role="application"
+      aria-label="Map Editor"
       bind:this={svgElement} bind:clientWidth={svgWidth} bind:clientHeight={svgHeight}
       viewBox="{activeMinX} {-activeMaxY} {activeRangeX} {activeRangeY}"
       preserveAspectRatio="none"
@@ -380,44 +482,44 @@
 
   <!-- RIGHT: TOOLBAR -->
   <div class="toolbar">
-    <h3>Tools</h3>
-    <button class:active={editMode === 'edit'} on:click={() => setMode('edit')}><span>👆</span> Select/Edit</button>
-    <button class:active={editMode === 'add'} on:click={() => setMode('add')}><span>➕</span> Add Terminal</button>
-    <button class:active={editMode === 'zoom'} on:click={() => setMode('zoom')}><span>🔍</span> Zoom</button>
+    <h3>{i18n[lang].tools}</h3>
+    <button class:active={editMode === 'edit'} on:click={() => setMode('edit')}><span>👆</span> {i18n[lang].selectEdit}</button>
+    <button class:active={editMode === 'add'} on:click={() => setMode('add')}><span>➕</span> {i18n[lang].addTerminal}</button>
+    <button class:active={editMode === 'zoom'} on:click={() => setMode('zoom')}><span>🔍</span> {i18n[lang].zoom}</button>
     
     <div class="spacer"></div>
 
-    <h3>Modify Selection</h3>
+    <h3>{i18n[lang].modifySelection}</h3>
     <div class="btn-row">
-      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title="Rotate Clockwise"><span>rotate ↺</span></button>
-      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title="Rotate Counter-Clockwise"><span>↻ rotate</span></button>
+      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title={i18n[lang].titleRotateCw}><span>{i18n[lang].rotateClockwise}</span></button>
+      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title={i18n[lang].titleRotateCcw}><span>{i18n[lang].rotateCounterClockwise}</span></button>
     </div>
 
     <div class="spacer"></div>
 
     {#if singleSelectedIdx !== null && terminals[singleSelectedIdx]}
       <div class="properties-panel">
-        <div class="panel-header"><strong>Terminal ID: {terminals[singleSelectedIdx].id}</strong></div>
-        <label><span>Type (1,2,32)</span><input type="number" bind:value={terminals[singleSelectedIdx].type}></label>
-        <label><span>Radius Area</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].radius_area}></label>
-        <label><span>Theta (rad)</span><input type="number" step="0.05" bind:value={terminals[singleSelectedIdx].theta}></label>
-        <label><span>Max Vx</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vx}></label>
-        <label><span>Max VTheta</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vtheta}></label>
+        <div class="panel-header"><strong>{i18n[lang].terminalId}: {terminals[singleSelectedIdx].id}</strong></div>
+        <label><span>{i18n[lang].typeLabel}</span><input type="number" bind:value={terminals[singleSelectedIdx].type}></label>
+        <label><span>{i18n[lang].radiusArea}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].radius_area}></label>
+        <label><span>{i18n[lang].thetaRad}</span><input type="number" step="0.05" bind:value={terminals[singleSelectedIdx].theta}></label>
+        <label><span>{i18n[lang].maxVx}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vx}></label>
+        <label><span>{i18n[lang].maxVtheta}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vtheta}></label>
       </div>
     {:else if selectedIdxs.size > 1}
       <div class="properties-panel">
-        <div class="panel-header"><strong>{selectedIdxs.size} Terminals Selected</strong></div>
-        <p style="font-size: 11px; color: #666; margin: 0;">Select a single terminal to edit its individual attributes.</p>
+        <div class="panel-header"><strong>{selectedIdxs.size} {i18n[lang].terminalsSelected}</strong></div>
+        <p style="font-size: 11px; color: #666; margin: 0;">{i18n[lang].selectSinglePrompt}</p>
       </div>
     {/if}
 
-    <button class="delete-btn" on:click={deleteSelectedTerminal} disabled={selectedIdxs.size === 0}><span>🗑️</span> Delete Selected</button>
+    <button class="delete-btn" on:click={deleteSelectedTerminal} disabled={selectedIdxs.size === 0}><span>🗑️</span> {i18n[lang].deleteSelected}</button>
 
     <div class="spacer"></div>
 
-    <h3>Actions</h3>
-    <button class="action-btn" on:click={undoLastMove}><span>↩️</span> Undo Action</button>
-    <button class="save-btn" on:click={() => dispatch('save', terminals)}><span>💾</span> Save Terminals</button>
+    <h3>{i18n[lang].actions}</h3>
+    <button class="action-btn" on:click={undoLastMove}><span>↩️</span> {i18n[lang].undoAction}</button>
+    <button class="save-btn" on:click={() => dispatch('save', terminals)}><span>💾</span> {i18n[lang].saveTerminals}</button>
   </div>
 </div>
 
