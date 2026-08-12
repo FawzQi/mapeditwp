@@ -348,7 +348,7 @@
   .upload-item label { font-size: 12px; font-weight: bold; color: #666; text-transform: uppercase; }
   input[type="file"] { font-family: monospace; background: #eef1f5; padding: 8px; border-radius: 4px; cursor: pointer; border: 1px solid #ccc; max-width: 200px; }
   
-  .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+  .tabs { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; }
   .tabs button { padding: 10px 20px; font-size: 15px; font-weight: bold; border: none; background: #eef1f5; border-radius: 6px; cursor: pointer; transition: all 0.2s; color: #555; }
   .tabs button.active { background: #0064ff; color: white; box-shadow: 0 2px 8px rgba(0,100,255,0.3); }
   .tabs button:hover:not(.active) { background: #dfe4ea; }
