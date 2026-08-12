@@ -9,25 +9,25 @@
   const i18n = {
     en: {
       howToUse: "📖 How to Use",
-      mouseControls: "Mouse Controls",
-      labelLeftClick: "Left Click",
-      leftClick: "Select & move terminals.",
-      labelRightDrag: "Right Drag",
-      rightDrag: "Pan the map view.",
-      labelDoubleClick: "Double-Click",
-      doubleClick: "Auto-fit bounds.",
-      selection: "Selection",
-      labelDragEmpty: "Drag empty space",
-      dragEmpty: "Select multiple terminals.",
-      labelAltClick: "Alt + Click",
-      altClick: "Multi-select individual terminals.",
-      addingModifying: "Adding & Modifying",
-      labelAdd: "Add",
-      addDesc: "Select the ➕ tool and click the map.",
+      mouseControls: "Basic Controls",
+      labelLeftClick: "Move Terminals",
+      leftClick: "Left-click & drag selected terminals.",
+      labelRightDrag: "Pan Map",
+      rightDrag: "Right-click & drag on empty space.",
       labelRotate: "Rotate",
-      rotateDesc: "Select terminals and use the rotation buttons to turn them & their Theta.",
-      labelProperties: "Properties",
-      propDesc: "Select <b>exactly one</b> terminal to change its type and speeds.",
+      rotateDesc: "Select terminals, then right-click & drag on one of them.",
+      labelDoubleClick: "Reset View",
+      doubleClick: "Double-click to reset zoom.",
+      selection: "Selection Tools",
+      labelDragEmpty: "Box Select",
+      dragEmpty: "Left-click & drag on empty space.",
+      labelAltClick: "Multi-Select",
+      altClick: "Alt + Left-click to add/remove terminals.",
+      addingModifying: "Adding & Properties",
+      labelAdd: "Add New",
+      addDesc: "Click the ➕ tool and click the map.",
+      labelProperties: "Edit Stats",
+      propDesc: "Select <b>exactly one</b> terminal to edit its Type, Speed, and lookahead.",
       types: "Types",
       type1: "Type 1: Stop Area",
       type2: "Type 2: Slow Area",
@@ -38,44 +38,49 @@
       addTerminal: "Add Terminal",
       zoom: "Zoom",
       modifySelection: "Modify Selection",
-      rotateClockwise: "rotate ↺",
-      rotateCounterClockwise: "↻ rotate",
-      titleRotateCw: "Rotate Clockwise",
-      titleRotateCcw: "Rotate Counter-Clockwise",
       deleteSelected: "Delete Selected",
       terminalId: "Terminal ID",
       terminalsSelected: "Terminals Selected",
       selectSinglePrompt: "Select a single terminal to edit its individual attributes.",
-      typeLabel: "Type (1,2,32)",
-      radiusArea: "Radius Area",
-      thetaRad: "Theta (rad)",
+      typeLabel: "Type",
+      radiusArea: "Radius",
+      thetaRad: "Theta",
       maxVx: "Max Vx",
-      maxVtheta: "Max VTheta",
+      maxVy: "Max Vy",
+      maxVtheta: "Max Vθ",
+      lookAhead: "LookAhead",
+      obsScanR: "Obs Scan R",
+      icpScoreMax: "ICP Max",
+      scanMinX: "Scan Min X",
+      scanMaxX: "Scan Max X",
+      scanMinY: "Scan Min Y",
+      scanMaxY: "Scan Max Y",
+      obsThreshold: "Obs Thresh",
       actions: "Actions",
       undoAction: "Undo Action",
       saveTerminals: "Save Terminals"
     },
     id: {
       howToUse: "📖 Cara Penggunaan",
-      mouseControls: "Kontrol Mouse",
-      labelLeftClick: "Klik Kiri",
-      leftClick: "Pilih & pindahkan terminal.",
-      labelRightDrag: "Geser Kanan",
-      rightDrag: "Geser tampilan peta.",
-      labelDoubleClick: "Klik Ganda",
-      doubleClick: "Sesuaikan tampilan otomatis.",
-      selection: "Pilihan",
-      labelDragEmpty: "Seret area kosong",
-      dragEmpty: "Pilih beberapa terminal.",
-      labelAltClick: "Alt + Klik",
-      altClick: "Pilih beberapa terminal secara individual.",
-      addingModifying: "Menambah & Mengubah",
-      labelAdd: "Tambah",
+      mouseControls: "Kontrol Dasar",
+      labelLeftClick: "Pindah Terminal",
+      leftClick: "Klik kiri & seret terminal terpilih.",
+      labelRightDrag: "Geser Peta",
+      rightDrag: "Klik kanan & seret di area kosong.",
+      labelRotate: "Putar Terminal",
+      rotateDesc: "Pilih terminal, lalu klik kanan & seret pada terminal tersebut.",
+      labelDoubleClick: "Reset Tampilan",
+      doubleClick: "Klik ganda untuk reset zoom.",
+      selection: "Alat Pilihan",
+      labelDragEmpty: "Pilih Kotak",
+      dragEmpty: "Klik kiri & seret di area kosong.",
+      labelAltClick: "Pilih Banyak",
+      altClick: "Alt + Klik kiri untuk tambah/hapus terminal.",
+      addingModifying: "Menambah & Properti",
+      labelAdd: "Tambah Baru",
       addDesc: "Pilih alat ➕ dan klik pada peta.",
-      labelRotate: "Putar",
-      rotateDesc: "Pilih terminal dan gunakan tombol putar untuk memutar posisi & nilai Theta.",
-      labelProperties: "Properti",
-      propDesc: "Pilih <b>tepat satu</b> terminal untuk mengubah tipe dan kecepatannya.",
+      labelProperties: "Edit Atribut",
+      propDesc: "Pilih <b>tepat satu</b> terminal untuk mengubah Tipe dan kecepatannya.",
       types: "Tipe Terminal",
       type1: "Tipe 1: Area Berhenti",
       type2: "Tipe 2: Area Lambat",
@@ -86,19 +91,24 @@
       addTerminal: "Tambah Terminal",
       zoom: "Pembesaran",
       modifySelection: "Ubah Pilihan",
-      rotateClockwise: "putar ↺",
-      rotateCounterClockwise: "↻ putar",
-      titleRotateCw: "Putar Searah Jarum Jam",
-      titleRotateCcw: "Putar Berlawanan Jarum Jam",
       deleteSelected: "Hapus Yang Dipilih",
       terminalId: "ID Terminal",
       terminalsSelected: "Terminal Dipilih",
       selectSinglePrompt: "Pilih satu terminal untuk mengedit atributnya.",
-      typeLabel: "Tipe (1,2,32)",
-      radiusArea: "Area Radius",
-      thetaRad: "Theta (rad)",
+      typeLabel: "Tipe",
+      radiusArea: "Radius",
+      thetaRad: "Theta",
       maxVx: "Vx Maks",
-      maxVtheta: "VTheta Maks",
+      maxVy: "Vy Maks",
+      maxVtheta: "Vθ Maks",
+      lookAhead: "LookAhead",
+      obsScanR: "Obs Scan R",
+      icpScoreMax: "ICP Maks",
+      scanMinX: "Scan Min X",
+      scanMaxX: "Scan Max X",
+      scanMinY: "Scan Min Y",
+      scanMaxY: "Scan Max Y",
+      obsThreshold: "Obs Thresh",
       actions: "Aksi",
       undoAction: "Batalkan Aksi",
       saveTerminals: "Simpan Terminal"
@@ -115,6 +125,10 @@
   
   let customView = null;
   let zoomUndoStack = [];
+  
+  let rotationCenter = null;
+  let rotationInitialPoints = [];
+  let dragStartAngle = 0;
   
   let dragStartPos = null;
   let panStartPixel = null;
@@ -155,38 +169,13 @@
     selectedIdxs = new Set();
   }
 
-  function rotateSelected(angleDegrees) {
-    if (selectedIdxs.size === 0) return;
-    saveState();
-    
-    const angleRad = angleDegrees * (Math.PI / 180);
-    const cosA = Math.cos(angleRad);
-    const sinA = Math.sin(angleRad);
-    
-    let cx = 0, cy = 0;
-    for (let i of selectedIdxs) { cx += terminals[i].x; cy += terminals[i].y; }
-    cx /= selectedIdxs.size; cy /= selectedIdxs.size;
-    
-    terminals = terminals.map((t, i) => {
-      if (selectedIdxs.has(i)) {
-        const dx = t.x - cx; const dy = t.y - cy;
-        let newTheta = (t.theta || 0) + angleRad;
-        while (newTheta > Math.PI) newTheta -= 2 * Math.PI;
-        while (newTheta < -Math.PI) newTheta += 2 * Math.PI;
-
-        return { ...t, x: cx + (dx * cosA - dy * sinA), y: cy + (dx * sinA + dy * cosA), theta: newTheta };
-      }
-      return t;
-    });
-  }
-
   function onKey(event) {
     const key = event.key.toLowerCase();
     if (event.altKey && key === 's') dispatch('save', terminals);
     else if (event.altKey && key === 'z') { editMode === 'zoom' ? resetZoom() : undoLastMove(); } 
     else if (event.altKey && key === 'e') setMode('edit');
     else if (event.altKey && key === 'x') setMode('zoom');
-    else if (key === 'delete' || key === 'backspace') deleteSelectedTerminal(); 
+    else if (key === 'delete') deleteSelectedTerminal(); 
   }
 
   function getGlobalCoords(event) {
@@ -198,14 +187,38 @@
   }
 
   function onPress(event) {
+    const coords = getGlobalCoords(event);
+    
     if (event.button === 2) {
+      let closestIdx = -1;
+      let minDist = Infinity;
+      
+      terminals.forEach((t, i) => {
+        const dist = Math.sqrt(Math.pow(t.x - coords.x, 2) + Math.pow(t.y - coords.y, 2));
+        const hitRadius = Math.max(t.radius_area, pointRadius * 4.0);
+        if (dist < minDist && dist < hitRadius) { minDist = dist; closestIdx = i; }
+      });
+
+      if (closestIdx !== -1 && selectedIdxs.has(closestIdx)) {
+        dragAction = 'rotate';
+        dragStartPos = coords;
+        let cx = 0, cy = 0;
+        for (let i of selectedIdxs) { cx += terminals[i].x; cy += terminals[i].y; }
+        cx /= selectedIdxs.size; cy /= selectedIdxs.size;
+        rotationCenter = { x: cx, y: cy };
+        rotationInitialPoints = terminals.map(t => ({...t}));
+        dragStartAngle = Math.atan2(coords.y - rotationCenter.y, coords.x - rotationCenter.x);
+        saveState();
+        lockView();
+        return;
+      }
+      
       dragAction = 'pan';
       panStartPixel = { x: event.clientX, y: event.clientY };
       lockView(); 
       return; 
     }
 
-    const coords = getGlobalCoords(event);
     dragStartPos = coords;
 
     if (editMode === 'edit') {
@@ -274,6 +287,33 @@
     const coords = getGlobalCoords(event);
     const dx = coords.x - dragStartPos.x;
     const dy = coords.y - dragStartPos.y;
+
+    if (dragAction === 'rotate' && rotationCenter) {
+      const currentAngle = Math.atan2(coords.y - rotationCenter.y, coords.x - rotationCenter.x);
+      const angleDiff = currentAngle - dragStartAngle;
+      const cosA = Math.cos(angleDiff);
+      const sinA = Math.sin(angleDiff);
+      
+      terminals = rotationInitialPoints.map((t, i) => {
+        if (selectedIdxs.has(i)) {
+          const dx = t.x - rotationCenter.x;
+          const dy = t.y - rotationCenter.y;
+          
+          let newTheta = (t.theta || 0) + angleDiff;
+          while (newTheta > Math.PI) newTheta -= 2 * Math.PI;
+          while (newTheta < -Math.PI) newTheta += 2 * Math.PI;
+          
+          return {
+            ...t,
+            x: rotationCenter.x + (dx * cosA - dy * sinA),
+            y: rotationCenter.y + (dx * sinA + dy * cosA),
+            theta: newTheta
+          };
+        }
+        return t;
+      });
+      return;
+    }
 
     if (dragAction === 'move' && selectedIdxs.size > 0) {
       for (let i of selectedIdxs) { terminals[i].x += dx; terminals[i].y += dy; }
@@ -394,6 +434,7 @@
       <ul>
         <li><strong>{i18n[lang].labelLeftClick}:</strong> {i18n[lang].leftClick}</li>
         <li><strong>{i18n[lang].labelRightDrag}:</strong> {i18n[lang].rightDrag}</li>
+        <li><strong>{i18n[lang].labelRotate}:</strong> {i18n[lang].rotateDesc}</li>
         <li><strong>{i18n[lang].labelDoubleClick}:</strong> {i18n[lang].doubleClick}</li>
       </ul>
     </div>
@@ -408,7 +449,6 @@
       <h4>{i18n[lang].addingModifying}</h4>
       <ul>
         <li><strong>{i18n[lang].labelAdd}:</strong> {i18n[lang].addDesc}</li>
-        <li><strong>{i18n[lang].labelRotate}:</strong> {i18n[lang].rotateDesc}</li>
         <li><strong>{i18n[lang].labelProperties}:</strong> {@html i18n[lang].propDesc}</li>
       </ul>
     </div>
@@ -452,8 +492,8 @@
         {/if}
 
         {#each terminals as t, i}
-          <circle cx={t.x} cy={t.y} r={t.radius_area || 1.0} fill={getTerminalColor(t.type)} fill-opacity={selectedIdxs.has(i) ? "0.9" : "0.5"} stroke={getTerminalColor(t.type)} stroke-width={lineStroke * 2} class="hoverable-point" />
-          <circle cx={t.x} cy={t.y} r={pointRadius * 1.5} fill={getTerminalColor(t.type)} />
+          <circle cx={t.x} cy={t.y} r={t.radius_area || 1.0} fill={selectedIdxs.has(i) ? "red" : getTerminalColor(t.type)} fill-opacity={selectedIdxs.has(i) ? "0.9" : "0.5"} stroke={selectedIdxs.has(i) ? "red" : getTerminalColor(t.type)} stroke-width={lineStroke * 2} class="hoverable-point" />
+          <circle cx={t.x} cy={t.y} r={pointRadius * 1.5} fill={selectedIdxs.has(i) ? "red" : getTerminalColor(t.type)} />
           <line x1={t.x} y1={t.y} x2={t.x + (t.radius_area * 0.8) * Math.cos(t.theta)} y2={t.y + (t.radius_area * 0.8) * Math.sin(t.theta)} stroke="black" stroke-width={lineStroke * 1.5} />
           <circle cx={t.x + (t.radius_area * 0.8) * Math.cos(t.theta)} cy={t.y + (t.radius_area * 0.8) * Math.sin(t.theta)} r={pointRadius * 1.2} fill="black" />
           
@@ -490,21 +530,28 @@
     <div class="spacer"></div>
 
     <h3>{i18n[lang].modifySelection}</h3>
-    <div class="btn-row">
-      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title={i18n[lang].titleRotateCw}><span>{i18n[lang].rotateClockwise}</span></button>
-      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title={i18n[lang].titleRotateCcw}><span>{i18n[lang].rotateCounterClockwise}</span></button>
-    </div>
 
     <div class="spacer"></div>
 
     {#if singleSelectedIdx !== null && terminals[singleSelectedIdx]}
       <div class="properties-panel">
         <div class="panel-header"><strong>{i18n[lang].terminalId}: {terminals[singleSelectedIdx].id}</strong></div>
-        <label><span>{i18n[lang].typeLabel}</span><input type="number" bind:value={terminals[singleSelectedIdx].type}></label>
-        <label><span>{i18n[lang].radiusArea}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].radius_area}></label>
-        <label><span>{i18n[lang].thetaRad}</span><input type="number" step="0.05" bind:value={terminals[singleSelectedIdx].theta}></label>
-        <label><span>{i18n[lang].maxVx}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vx}></label>
-        <label><span>{i18n[lang].maxVtheta}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vtheta}></label>
+        <div class="properties-grid">
+          <label><span>{i18n[lang].typeLabel}</span><input type="number" bind:value={terminals[singleSelectedIdx].type}></label>
+          <label><span>{i18n[lang].radiusArea}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].radius_area}></label>
+          <label><span>{i18n[lang].thetaRad}</span><input type="number" step="0.05" bind:value={terminals[singleSelectedIdx].theta}></label>
+          <label><span>{i18n[lang].lookAhead}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].lookahead_distance}></label>
+          <label><span>{i18n[lang].maxVx}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vx}></label>
+          <label><span>{i18n[lang].maxVy}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vy}></label>
+          <label><span>{i18n[lang].maxVtheta}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].max_vtheta}></label>
+          <label><span>{i18n[lang].icpScoreMax}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].icp_score_max}></label>
+          <label><span>{i18n[lang].obsScanR}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].obs_scan_r}></label>
+          <label><span>{i18n[lang].obsThreshold}</span><input type="number" step="1000" bind:value={terminals[singleSelectedIdx].obs_threshold}></label>
+          <label><span>{i18n[lang].scanMinX}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].scan_min_x}></label>
+          <label><span>{i18n[lang].scanMaxX}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].scan_max_x}></label>
+          <label><span>{i18n[lang].scanMinY}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].scan_min_y}></label>
+          <label><span>{i18n[lang].scanMaxY}</span><input type="number" step="0.1" bind:value={terminals[singleSelectedIdx].scan_max_y}></label>
+        </div>
       </div>
     {:else if selectedIdxs.size > 1}
       <div class="properties-panel">
@@ -563,6 +610,7 @@
 
   .properties-panel { background: #fff; border: 1px solid #cce5ff; border-radius: 4px; padding: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: inset 0 0 5px rgba(0,100,255,0.05); }
   .panel-header { font-size: 14px; color: #004dc4; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-  .properties-panel label { display: flex; flex-direction: column; font-size: 12px; color: #555; font-weight: bold; gap: 3px; }
-  .properties-panel input { padding: 5px; font-family: monospace; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; }
+  .properties-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .properties-panel label { display: flex; flex-direction: column; font-size: 11px; color: #555; font-weight: bold; gap: 2px; }
+  .properties-panel input { padding: 4px; font-family: monospace; border: 1px solid #ccc; border-radius: 3px; font-size: 12px; width: 100%; box-sizing: border-box; }
 </style>

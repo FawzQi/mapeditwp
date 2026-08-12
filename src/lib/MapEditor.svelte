@@ -7,6 +7,10 @@
   let mapImageProps = null; 
   let activeTab = 'waypoint';
   
+  // Track original filenames
+  let waypointFileName = 'edited_waypoints.csv';
+  let terminalFileName = 'edited_terminals.csv';
+  
   // Toast Notification State
   let toastMessage = "";
 
@@ -85,8 +89,20 @@
     reader.readAsText(file);
   }
 
-  function handleWaypointUpload(event) { loadCsv(event.target.files[0], data => mapData = data); }
-  function handleTerminalUpload(event) { loadCsv(event.target.files[0], data => terminalData = data); }
+  function handleWaypointUpload(event) { 
+    const file = event.target.files[0];
+    if (file) {
+      waypointFileName = file.name;
+      loadCsv(file, data => mapData = data); 
+    }
+  }
+  function handleTerminalUpload(event) { 
+    const file = event.target.files[0];
+    if (file) {
+      terminalFileName = file.name;
+      loadCsv(file, data => terminalData = data); 
+    }
+  }
 
   async function handleMapUpload(event) {
     const files = event.target.files;
@@ -245,7 +261,7 @@
           {lang}
           waypoints={mapData} 
           mapImage={mapImageProps} 
-          on:save={(e) => handleSave(e, 'edited_waypoints.csv')} 
+          on:save={(e) => handleSave(e, waypointFileName)} 
         />
       {:else}
         <TerminalEditor 
@@ -253,7 +269,7 @@
           terminals={terminalData}
           waypoints={mapData} 
           mapImage={mapImageProps} 
-          on:save={(e) => handleSave(e, 'edited_terminals.csv')} 
+          on:save={(e) => handleSave(e, terminalFileName)} 
         />
       {/if}
     </div>

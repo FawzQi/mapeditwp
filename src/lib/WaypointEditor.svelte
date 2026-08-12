@@ -8,82 +8,66 @@
   const i18n = {
     en: {
       howToUse: "📖 How to Use",
-      mouseControls: "Mouse Controls",
-      labelLeftClick: "Left Click",
-      leftClick: "Select & move points.",
-      labelRightDrag: "Right Drag",
-      rightDrag: "Pan the map view.",
-      labelDoubleClick: "Double-Click",
-      doubleClick: "Auto-fit bounds/Zoom out.",
-      selection: "Selection",
-      labelDragEmpty: "Drag empty space",
-      dragEmpty: "Select multiple points inside a box.",
-      labelAltClick: "Alt + Click",
-      altClick: "Multi-select or deselect individual points.",
+      mouseControls: "Basic Controls",
+      labelLeftClick: "Move Points",
+      leftClick: "Left-click & drag selected points.",
+      labelRightDrag: "Pan Map",
+      rightDrag: "Right-click & drag on empty space.",
+      labelRotate: "Rotate Points",
+      rotate: "Select points, then right-click & drag on one of them.",
+      labelDoubleClick: "Reset View",
+      doubleClick: "Double-click map to reset zoom.",
+      selection: "Selection Tools",
+      labelDragEmpty: "Box Select",
+      dragEmpty: "Left-click & drag on empty space.",
+      labelAltClick: "Multi-Select",
+      altClick: "Alt + Left-click to add/remove points.",
       shortcuts: "Shortcuts",
       shortcutEdit: "Edit Mode",
       shortcutZoom: "Zoom Mode",
       shortcutUndo: "Undo",
       shortcutSave: "Save",
       shortcutDelete: "Remove Selected",
-      transformations: "Transformations",
-      transformDesc: "Use the WP Transform tools to align the trajectory. Click <b>Auto-Align</b> to estimate based on map pixel dimensions, or set values manually. Click <b>Apply</b> to bake coordinates.",
       errUploadMapFirst: "Please upload a Map (.pgm & .yaml) first.",
 
       tools: "Tools",
       editMode: "Edit (Alt+E)",
       zoomMode: "Zoom (Alt+X)",
       modifySelection: "Modify Selection",
-      rotateClockwise: "rotate ↺",
-      rotateCounterClockwise: "↻ rotate",
-      titleRotateCw: "Rotate Clockwise",
-      titleRotateCcw: "Rotate Counter-Clockwise",
       deleteSelected: "Delete (Del)",
-      wpTransform: "WP Transform",
-      labelScale: "Scale",
-      autoAlign: "Auto-Align",
-      applyToPoints: "Apply to Points",
       actions: "Actions",
       undo: "Undo (Alt+Z)",
       saveMap: "Save Map"
     },
     id: {
       howToUse: "📖 Cara Penggunaan",
-      mouseControls: "Kontrol Mouse",
-      labelLeftClick: "Klik Kiri",
-      leftClick: "Pilih & pindahkan titik.",
-      labelRightDrag: "Geser Kanan",
-      rightDrag: "Geser tampilan peta.",
-      labelDoubleClick: "Klik Ganda",
-      doubleClick: "Sesuaikan tampilan otomatis / Zoom out.",
-      selection: "Pilihan",
-      labelDragEmpty: "Seret area kosong",
-      dragEmpty: "Pilih banyak titik di dalam kotak.",
-      labelAltClick: "Alt + Klik",
-      altClick: "Pilih / batal pilih beberapa titik secara individual.",
+      mouseControls: "Kontrol Dasar",
+      labelLeftClick: "Pindah Titik",
+      leftClick: "Klik kiri & seret titik terpilih.",
+      labelRightDrag: "Geser Peta",
+      rightDrag: "Klik kanan & seret di area kosong.",
+      labelRotate: "Putar Titik",
+      rotate: "Pilih titik, lalu klik kanan & seret pada titik tersebut.",
+      labelDoubleClick: "Reset Tampilan",
+      doubleClick: "Klik ganda untuk reset zoom.",
+      selection: "Alat Pilihan",
+      labelDragEmpty: "Pilih Kotak",
+      dragEmpty: "Klik kiri & seret di area kosong.",
+      labelAltClick: "Pilih Banyak",
+      altClick: "Alt + Klik kiri untuk tambah/hapus titik.",
       shortcuts: "Pintasan",
       shortcutEdit: "Mode Edit",
       shortcutZoom: "Mode Pembesaran",
       shortcutUndo: "Batalkan",
       shortcutSave: "Simpan",
       shortcutDelete: "Hapus Yang Dipilih",
-      transformations: "Transformasi",
-      transformDesc: "Gunakan alat Transformasi WP untuk menyelaraskan lintasan. Klik <b>Auto-Align</b> untuk mengestimasi berdasarkan dimensi piksel peta, atau atur nilai secara manual. Klik <b>Terapkan ke Titik</b> untuk mengaplikasikan koordinat.",
       errUploadMapFirst: "Silakan unggah Peta (.pgm & .yaml) terlebih dahulu.",
 
       tools: "Alat",
       editMode: "Edit (Alt+E)",
       zoomMode: "Pembesaran (Alt+X)",
       modifySelection: "Ubah Pilihan",
-      rotateClockwise: "putar ↺",
-      rotateCounterClockwise: "↻ putar",
-      titleRotateCw: "Putar Searah Jarum Jam",
-      titleRotateCcw: "Putar Berlawanan Jarum Jam",
       deleteSelected: "Hapus (Del)",
-      wpTransform: "Transformasi WP",
-      labelScale: "Skala",
-      autoAlign: "Ratakan Otomatis",
-      applyToPoints: "Terapkan ke Titik",
       actions: "Aksi",
       undo: "Batalkan (Alt+Z)",
       saveMap: "Simpan Peta"
@@ -101,11 +85,9 @@
   let customView = null;
   let zoomUndoStack = [];
   
-  let wpOriginX = 0;
-  let wpOriginY = 0;
-  let wpOriginYaw = 0; 
-  let wpScale = 1.0; 
-  $: safeScale = wpScale === 0 ? 0.0001 : wpScale; 
+  let rotationCenter = null;
+  let rotationInitialPoints = [];
+  let dragStartAngle = 0;
   
   let dragStartPos = null;
   let panStartPixel = null;
@@ -119,18 +101,13 @@
   let svgHeight = 600;
 
   const saveState = () => undoStack.push({
-    waypoints: JSON.parse(JSON.stringify(waypoints)),
-    wpOriginX, wpOriginY, wpOriginYaw, wpScale
+    waypoints: JSON.parse(JSON.stringify(waypoints))
   });
 
   function undoLastMove() { 
     if (undoStack.length > 0) {
       const state = undoStack.pop();
       waypoints = state.waypoints;
-      wpOriginX = state.wpOriginX;
-      wpOriginY = state.wpOriginY;
-      wpOriginYaw = state.wpOriginYaw;
-      wpScale = state.wpScale || 1.0;
       selectedIdxs = new Set();
     }
   }
@@ -146,53 +123,7 @@
     selectedIdxs = new Set();
   }
 
-  function rotateSelected(angleDegrees) {
-    if (selectedIdxs.size === 0) return;
-    saveState();
-    
-    const angleRad = angleDegrees * (Math.PI / 180);
-    const cosA = Math.cos(angleRad);
-    const sinA = Math.sin(angleRad);
-    
-    let cx = 0, cy = 0;
-    for (let i of selectedIdxs) { cx += waypoints[i].x; cy += waypoints[i].y; }
-    cx /= selectedIdxs.size; cy /= selectedIdxs.size;
-    
-    waypoints = waypoints.map((wp, i) => {
-      if (selectedIdxs.has(i)) {
-        const dx = wp.x - cx; const dy = wp.y - cy;
-        return { ...wp, x: cx + (dx * cosA - dy * sinA), y: cy + (dx * sinA + dy * cosA) };
-      }
-      return wp;
-    });
-  }
 
-  function autoAlignMap() {
-    if (!mapImage) return alert(i18n[lang].errUploadMapFirst);
-    const w = mapImage.width;
-    const h = mapImage.height;
-    
-    let calcX = 0.5 + ((w - 779) / 75) * 1.0;
-    let calcY = 0.0 + ((h - 282) / 120) * 0.7;
-    let calcYaw = 0.0095 + ((w - 779) / 75) * -0.0295;
-    
-    wpOriginX = parseFloat(calcX.toFixed(3));
-    wpOriginY = parseFloat(calcY.toFixed(3));
-    wpOriginYaw = parseFloat(calcYaw.toFixed(4));
-    wpScale = mapImage.resolution;
-  }
-
-  function bakeTransform() {
-    saveState();
-    waypoints = waypoints.map(w => {
-      const sx = w.x * safeScale;
-      const sy = w.y * safeScale;
-      const cosT = Math.cos(wpOriginYaw);
-      const sinT = Math.sin(wpOriginYaw);
-      return { ...w, x: sx * cosT - sy * sinT + wpOriginX, y: sx * sinT + sy * cosT + wpOriginY };
-    });
-    wpOriginX = 0; wpOriginY = 0; wpOriginYaw = 0; wpScale = 1.0;
-  }
 
   function onKey(event) {
     const key = event.key.toLowerCase();
@@ -220,20 +151,44 @@
   }
 
   function onPress(event) {
+    const coords = (editMode === 'zoom') ? getGlobalCoords(event) : getLocalCoords(event);
+    
     if (event.button === 2) {
+      let closestIdx = -1;
+      let minDist = Infinity;
+      const clickThreshold = pointRadius * 4.0; 
+      
+      waypoints.forEach((wp, i) => {
+        const dist = Math.sqrt(Math.pow(wp.x - coords.x, 2) + Math.pow(wp.y - coords.y, 2));
+        if (dist < minDist && dist < clickThreshold) { minDist = dist; closestIdx = i; }
+      });
+
+      if (closestIdx !== -1 && selectedIdxs.has(closestIdx)) {
+        dragAction = 'rotate';
+        dragStartPos = coords;
+        let cx = 0, cy = 0;
+        for (let i of selectedIdxs) { cx += waypoints[i].x; cy += waypoints[i].y; }
+        cx /= selectedIdxs.size; cy /= selectedIdxs.size;
+        rotationCenter = { x: cx, y: cy };
+        rotationInitialPoints = waypoints.map(w => ({...w}));
+        dragStartAngle = Math.atan2(coords.y - rotationCenter.y, coords.x - rotationCenter.x);
+        saveState();
+        lockView();
+        return;
+      }
+      
       dragAction = 'pan';
       panStartPixel = { x: event.clientX, y: event.clientY };
       lockView(); 
       return; 
     }
 
-    const coords = (editMode === 'zoom') ? getGlobalCoords(event) : getLocalCoords(event);
     dragStartPos = coords;
 
     if (editMode === 'edit') {
       let closestIdx = -1;
       let minDist = Infinity;
-      const clickThreshold = (pointRadius * 4.0) / safeScale; 
+      const clickThreshold = pointRadius * 4.0;
       
       waypoints.forEach((wp, i) => {
         const dist = Math.sqrt(Math.pow(wp.x - coords.x, 2) + Math.pow(wp.y - coords.y, 2));
@@ -283,6 +238,27 @@
     const dx = coords.x - dragStartPos.x;
     const dy = coords.y - dragStartPos.y;
 
+    if (dragAction === 'rotate' && rotationCenter) {
+      const currentAngle = Math.atan2(coords.y - rotationCenter.y, coords.x - rotationCenter.x);
+      const angleDiff = currentAngle - dragStartAngle;
+      const cosA = Math.cos(angleDiff);
+      const sinA = Math.sin(angleDiff);
+      
+      waypoints = rotationInitialPoints.map((wp, i) => {
+        if (selectedIdxs.has(i)) {
+          const dx = wp.x - rotationCenter.x;
+          const dy = wp.y - rotationCenter.y;
+          return {
+            ...wp,
+            x: rotationCenter.x + (dx * cosA - dy * sinA),
+            y: rotationCenter.y + (dx * sinA + dy * cosA)
+          };
+        }
+        return wp;
+      });
+      return;
+    }
+
     if (dragAction === 'move' && selectedIdxs.size > 0) {
       for (let i of selectedIdxs) { waypoints[i].x += dx; waypoints[i].y += dy; }
       dragStartPos = coords; waypoints = waypoints; 
@@ -314,18 +290,10 @@
     dragAction = 'none'; dragStartPos = null; 
   }
   
-  $: transformedWaypoints = waypoints.map(w => {
-    const sx = w.x * safeScale;
-    const sy = w.y * safeScale;
-    const cosT = Math.cos(wpOriginYaw);
-    const sinT = Math.sin(wpOriginYaw);
-    return { x: sx * cosT - sy * sinT + wpOriginX, y: sx * sinT + sy * cosT + wpOriginY };
-  });
-
-  $: wpMinX = transformedWaypoints.length ? Math.min(...transformedWaypoints.map(w => w.x)) : Infinity;
-  $: wpMaxX = transformedWaypoints.length ? Math.max(...transformedWaypoints.map(w => w.x)) : -Infinity;
-  $: wpMinY = transformedWaypoints.length ? Math.min(...transformedWaypoints.map(w => w.y)) : Infinity;
-  $: wpMaxY = transformedWaypoints.length ? Math.max(...transformedWaypoints.map(w => w.y)) : -Infinity;
+  $: wpMinX = waypoints.length ? Math.min(...waypoints.map(w => w.x)) : Infinity;
+  $: wpMaxX = waypoints.length ? Math.max(...waypoints.map(w => w.x)) : -Infinity;
+  $: wpMinY = waypoints.length ? Math.min(...waypoints.map(w => w.y)) : Infinity;
+  $: wpMaxY = waypoints.length ? Math.max(...waypoints.map(w => w.y)) : -Infinity;
 
   $: mapMinX = mapImage ? mapImage.originX : Infinity;
   $: mapMaxX = mapImage ? mapImage.originX + (mapImage.width * mapImage.resolution) : -Infinity;
@@ -407,6 +375,7 @@
       <ul>
         <li><strong>{i18n[lang].labelLeftClick}:</strong> {i18n[lang].leftClick}</li>
         <li><strong>{i18n[lang].labelRightDrag}:</strong> {i18n[lang].rightDrag}</li>
+        <li><strong>{i18n[lang].labelRotate}:</strong> {i18n[lang].rotate}</li>
         <li><strong>{i18n[lang].labelDoubleClick}:</strong> {i18n[lang].doubleClick}</li>
       </ul>
     </div>
@@ -426,10 +395,6 @@
         <li><strong>Alt + S:</strong> {i18n[lang].shortcutSave}</li>
         <li><strong>Delete:</strong> {i18n[lang].shortcutDelete}</li>
       </ul>
-    </div>
-    <div class="info-section">
-      <h4>{i18n[lang].transformations}</h4>
-      <p style="margin-top: 5px;">{@html i18n[lang].transformDesc}</p>
     </div>
   </div>
 
@@ -455,18 +420,18 @@
           <rect x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)} width={Math.abs(rectCurrent.x - rectStart.x)} height={Math.abs(rectCurrent.y - rectStart.y)} fill="rgba(0, 100, 255, 0.15)" stroke="blue" stroke-width={lineStroke} stroke-dasharray="{lineStroke * 2}, {lineStroke * 2}" />
         {/if}
 
-        <g bind:this={wpLayer} transform="translate({0+wpOriginX}, {0+wpOriginY}) rotate({(0+wpOriginYaw) * 180 / Math.PI}) scale({safeScale})">
-          <polyline points={pointsString} fill="none" stroke="rgba(0, 0, 255, 0.4)" stroke-width={lineStroke / safeScale} />
+        <g bind:this={wpLayer}>
+          <polyline points={pointsString} fill="none" stroke="rgba(0, 0, 255, 0.4)" stroke-width={lineStroke} />
          {#each waypoints as wp, i}
   <circle 
     cx={wp.x} cy={wp.y} 
-    r={Math.max(pointRadius / safeScale, 0.05 / safeScale)} 
+    r={Math.max(pointRadius, 0.05)} 
     fill={selectedIdxs.has(i) ? "red" : "#0064ff"} 
     class="hoverable-point" 
   />
 {/each}
           {#if rectStart && rectCurrent && dragAction === 'rect'}
-            <rect x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)} width={Math.abs(rectStart.x - rectCurrent.x)} height={Math.abs(rectCurrent.y - rectStart.y)} fill="rgba(0, 200, 0, 0.1)" stroke="green" stroke-width={lineStroke / safeScale} stroke-dasharray="{(lineStroke * 2) / safeScale}, {(lineStroke * 2) / safeScale}" />
+            <rect x={Math.min(rectStart.x, rectCurrent.x)} y={Math.min(rectStart.y, rectCurrent.y)} width={Math.abs(rectStart.x - rectCurrent.x)} height={Math.abs(rectCurrent.y - rectStart.y)} fill="rgba(0, 200, 0, 0.1)" stroke="green" stroke-width={lineStroke} stroke-dasharray="{(lineStroke * 2)}, {(lineStroke * 2)}" />
           {/if}
         </g>
       </g>
@@ -493,25 +458,9 @@
     <div class="spacer"></div>
 
     <h3>{i18n[lang].modifySelection}</h3>
-    <div class="btn-row">
-      <button class="icon-btn" on:click={() => rotateSelected(2)} disabled={selectedIdxs.size === 0} title={i18n[lang].titleRotateCw}><span>{i18n[lang].rotateClockwise}</span></button>
-      <button class="icon-btn" on:click={() => rotateSelected(-2)} disabled={selectedIdxs.size === 0} title={i18n[lang].titleRotateCcw}><span>{i18n[lang].rotateCounterClockwise}</span></button>
-    </div>
     <button class="delete-btn" on:click={deleteSelectedPoints} disabled={selectedIdxs.size === 0}><span>🗑️</span> {i18n[lang].deleteSelected}</button>
 
-    <div class="spacer"></div>
 
-    <h3>{i18n[lang].wpTransform}</h3>
-    <div class="origin-inputs">
-      <label>X: <input type="number" step="0.5" bind:value={wpOriginX}></label>
-      <label>Y: <input type="number" step="0.5" bind:value={wpOriginY}></label>
-      <label>Yaw: <input type="number" step="0.01" bind:value={wpOriginYaw}></label>
-      <label>{i18n[lang].labelScale}: <input type="number" step="0.01" bind:value={wpScale}></label>
-      <button class="sync-btn" on:click={autoAlignMap}>{i18n[lang].autoAlign}</button>
-      <button class="bake-btn" on:click={bakeTransform}>{i18n[lang].applyToPoints}</button>
-    </div>
-
-    <div class="spacer"></div>
 
     <h3>{i18n[lang].actions}</h3>
     <button class="action-btn" on:click={undoLastMove}><span>↩️</span> {i18n[lang].undo}</button>
